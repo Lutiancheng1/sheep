@@ -1,0 +1,29 @@
+{
+  "id": "level-1",
+  "name": "第一关",
+  "difficulty": 1,
+  "gridSize": {
+    "rows": 6,
+    "cols": 6
+  },
+  "tiles": [
+    { "type": "carrot", "layer": 0, "row": 1, "col": 1 },
+    { "type": "carrot", "layer": 0, "row": 1, "col": 2 },
+    { "type": "carrot", "layer": 0, "row": 1, "col": 3 },
+    { "type": "wheat", "layer": 0, "row": 2, "col": 1 },
+    { "type": "wheat", "layer": 0, "row": 2, "col": 2 },
+    { "type": "wheat", "layer": 0, "row": 2, "col": 3 },
+    { "type": "wood", "layer": 0, "row": 3, "col": 1 },
+    { "type": "wood", "layer": 0, "row": 3, "col": 2 },
+    { "type": "wood", "layer": 0, "row": 3, "col": 3 },
+    
+    { "type": "grass", "layer": 1, "row": 1, "col": 1 },
+    { "type": "grass", "layer": 1, "row": 1, "col": 2 },
+    { "type": "grass", "layer": 1, "row": 1, "col": 3 },
+    { "type": "stone", "layer": 1, "row": 2, "col": 1 },
+    { "type": "stone", "layer": 1, "row": 2, "col": 2 },
+    { "type": "stone", "layer": 1, "row": 2, "col": 3 },
+    
+    { "type": "coin", "layer": 2, "row": 2, "col": 2 }
+  ]
+}

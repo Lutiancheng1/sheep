@@ -1,0 +1,41 @@
+{
+  "id": "level-2",
+  "name": "第二关",
+  "difficulty": 2,
+  "gridSize": {
+    "rows": 8,
+    "cols": 6
+  },
+  "tiles": [
+    { "type": "carrot", "layer": 0, "row": 1, "col": 1 },
+    { "type": "carrot", "layer": 0, "row": 1, "col": 2 },
+    { "type": "carrot", "layer": 0, "row": 1, "col": 3 },
+    { "type": "carrot", "layer": 0, "row": 1, "col": 4 },
+    { "type": "wheat", "layer": 0, "row": 2, "col": 1 },
+    { "type": "wheat", "layer": 0, "row": 2, "col": 2 },
+    { "type": "wheat", "layer": 0, "row": 2, "col": 3 },
+    { "type": "wheat", "layer": 0, "row": 2, "col": 4 },
+    { "type": "wood", "layer": 0, "row": 3, "col": 1 },
+    { "type": "wood", "layer": 0, "row": 3, "col": 2 },
+    { "type": "wood", "layer": 0, "row": 3, "col": 3 },
+    { "type": "wood", "layer": 0, "row": 3, "col": 4 },
+    { "type": "stone", "layer": 0, "row": 4, "col": 1 },
+    { "type": "stone", "layer": 0, "row": 4, "col": 2 },
+    { "type": "stone", "layer": 0, "row": 4, "col": 3 },
+    { "type": "stone", "layer": 0, "row": 4, "col": 4 },
+
+    { "type": "grass", "layer": 1, "row": 1, "col": 2 },
+    { "type": "grass", "layer": 1, "row": 1, "col": 3 },
+    { "type": "coin", "layer": 1, "row": 2, "col": 2 },
+    { "type": "coin", "layer": 1, "row": 2, "col": 3 },
+    { "type": "shovel", "layer": 1, "row": 3, "col": 2 },
+    { "type": "shovel", "layer": 1, "row": 3, "col": 3 },
+    { "type": "carrot", "layer": 1, "row": 4, "col": 2 },
+    { "type": "carrot", "layer": 1, "row": 4, "col": 3 },
+
+    { "type": "wheat", "layer": 2, "row": 2, "col": 2 },
+    { "type": "wheat", "layer": 2, "row": 2, "col": 3 },
+    { "type": "wood", "layer": 2, "row": 3, "col": 2 },
+    { "type": "wood", "layer": 2, "row": 3, "col": 3 }
+  ]
+}
