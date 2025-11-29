@@ -24,7 +24,7 @@ export default class GameScene extends Phaser.Scene {
   private scoreText?: Phaser.GameObjects.Text
   private score = 0
   private tileSize = 80
-  
+
   // 农场主题配色
   private colors = {
     bg: 0xC1F0C1,         // 浅绿色背景
@@ -48,6 +48,9 @@ export default class GameScene extends Phaser.Scene {
     this.load.image('stone', '/icons/stone.png')
     this.load.image('coin', '/icons/coin.png')
     this.load.image('shovel', '/icons/shovel.png')
+
+    // 加载背景音乐
+    this.load.audio('bgm', '/assets/bgm.mp3')
   }
 
   private currentLevelId: string = 'level-1'
@@ -59,26 +62,66 @@ export default class GameScene extends Phaser.Scene {
   private isPaused = false
 
   create() {
+    // 播放背景音乐
+    if (!this.sound.get('bgm')) {
+      this.sound.play('bgm', { loop: true, volume: 0.5 })
+    } else if (!this.sound.get('bgm').isPlaying) {
+      this.sound.get('bgm').play({ loop: true, volume: 0.5 })
+    }
+
     // 0. 重置游戏状态
     this.tiles.clear()
     this.slots = []
     this.score = 0
     this.isPaused = false
 
-    // 1. 设置背景色 (浅绿色草地)
+    // 1. 设置背景色
     this.cameras.main.setBackgroundColor(this.colors.bg)
-    
-    // 2. 顶部 UI (仿羊了个羊)
+
+    // 优化：预先生成方块背景纹理 (极大提升渲染性能)
+    // 修复：确保纹理居中，避免错位
+    if (!this.textures.exists('tile-base')) {
+      const padding = 16
+      const textureSize = this.tileSize + padding
+      const margin = padding / 2
+
+      const graphics = this.make.graphics({ x: 0, y: 0 }, false)
+
+      // 阴影 (偏移 6px)
+      graphics.fillStyle(0x000000, 0.2)
+      graphics.fillRoundedRect(margin + 6, margin + 6, this.tileSize, this.tileSize, 12)
+
+      // 背景
+      graphics.fillStyle(this.colors.tileBg, 1)
+      graphics.fillRoundedRect(margin, margin, this.tileSize, this.tileSize, 12)
+
+      // 边框 (默认状态)
+      graphics.lineStyle(4, this.colors.tileBorder, 1)
+      graphics.strokeRoundedRect(margin, margin, this.tileSize, this.tileSize, 12)
+
+      graphics.generateTexture('tile-base', textureSize, textureSize)
+
+      // 生成被遮挡的纹理
+      graphics.clear()
+      // 阴影
+      graphics.fillStyle(0x000000, 0.2)
+      graphics.fillRoundedRect(margin + 6, margin + 6, this.tileSize, this.tileSize, 12)
+
+      // 背景 (变暗)
+      graphics.fillStyle(0x000000, 0.3)
+      graphics.fillRoundedRect(margin, margin, this.tileSize, this.tileSize, 12)
+
+      // 边框
+      graphics.lineStyle(4, this.colors.tileBorderBlocked, 1)
+      graphics.strokeRoundedRect(margin, margin, this.tileSize, this.tileSize, 12)
+
+      graphics.generateTexture('tile-blocked', textureSize, textureSize)
+    }
+
     this.createTopUI()
-
-    // 3. 加载并创建关卡
-    this.loadLevel(this.currentLevelId)
-
-    // 4. 绘制槽位区域 (木质栅栏风格)
     this.drawSlotArea()
-    
-    // 5. 绘制道具按钮
     this.createPropButtons()
+    this.loadLevel(this.currentLevelId)
   }
 
   createTopUI() {
@@ -89,10 +132,10 @@ export default class GameScene extends Phaser.Scene {
     settingsBg.fillRoundedRect(-30, -30, 60, 60, 10)
     settingsBg.lineStyle(4, 0x000000, 1)
     settingsBg.strokeRoundedRect(-30, -30, 60, 60, 10)
-    
+
     const gear = this.add.text(0, 0, '⚙️', { fontSize: '32px' }).setOrigin(0.5)
     settingsBtn.add([settingsBg, gear])
-    
+
     // Fix: Use config object for setInteractive
     settingsBtn.setInteractive({
       hitArea: new Phaser.Geom.Rectangle(-30, -30, 60, 60),
@@ -101,20 +144,20 @@ export default class GameScene extends Phaser.Scene {
     })
     settingsBtn.on('pointerup', () => this.pauseGame())
 
-    // ... (rest of createTopUI)
-
     const infoContainer = this.add.container(375, 80)
     const infoBg = this.add.graphics()
     infoBg.fillStyle(0x000000, 1)
-    infoBg.fillRoundedRect(-100, -25, 200, 50, 25)
-    
+    // Widen the background to fit date + level
+    infoBg.fillRoundedRect(-140, -25, 280, 50, 25)
+
     const dateStr = new Date().toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })
-    const infoText = this.add.text(0, 0, `- ${dateStr} -`, {
+    const levelNum = this.currentLevelId.split('-')[1] || '1'
+    const infoText = this.add.text(0, 0, `${dateStr}  第${levelNum}关`, {
       fontSize: '24px',
       color: '#FFFFFF',
       fontStyle: 'bold'
     }).setOrigin(0.5)
-    
+
     infoContainer.add([infoBg, infoText])
 
     // 分数 (右上角) - 简化显示
@@ -128,22 +171,22 @@ export default class GameScene extends Phaser.Scene {
   drawSlotArea() {
     // 槽位背景 - 木质纹理效果 (更接近原版)
     const slotBg = this.add.graphics()
-    
+
     // 深褐色底板
     slotBg.fillStyle(0x8B4513, 1)
     slotBg.fillRoundedRect(20, this.slotY - 60, 710, 120, 10)
-    
+
     // 浅色边框
     slotBg.lineStyle(6, 0xDEB887, 1)
     slotBg.strokeRoundedRect(20, this.slotY - 60, 710, 120, 10)
-    
+
     // 装饰钉子
     slotBg.fillStyle(0x5C3317, 1)
     slotBg.fillCircle(40, this.slotY - 40, 5)
     slotBg.fillCircle(710, this.slotY - 40, 5)
     slotBg.fillCircle(40, this.slotY + 40, 5)
     slotBg.fillCircle(710, this.slotY + 40, 5)
-    
+
     slotBg.setDepth(50)
 
     // 左右装饰栅栏 (更细致)
@@ -155,21 +198,21 @@ export default class GameScene extends Phaser.Scene {
     const fence = this.add.graphics()
     fence.fillStyle(0xDEB887, 1) // 浅木色
     fence.lineStyle(2, 0x8B4513, 1) // 深色描边
-    
+
     // 竖桩
     fence.fillRoundedRect(x, y, 15, 100, 5)
     fence.strokeRoundedRect(x, y, 15, 100, 5)
-    
+
     fence.fillRoundedRect(x + 40, y, 15, 100, 5)
     fence.strokeRoundedRect(x + 40, y, 15, 100, 5)
-    
+
     // 横档
     fence.fillRoundedRect(x - 5, y + 25, 65, 12, 4)
     fence.strokeRoundedRect(x - 5, y + 25, 65, 12, 4)
-    
+
     fence.fillRoundedRect(x - 5, y + 65, 65, 12, 4)
     fence.strokeRoundedRect(x - 5, y + 65, 65, 12, 4)
-    
+
     fence.setDepth(49)
   }
 
@@ -177,37 +220,37 @@ export default class GameScene extends Phaser.Scene {
     const startY = this.slotY + 120
     const gap = 180
     const startX = 375 - gap
-    
+
     // 移出道具
     this.createPropButton(startX, startY, '移出', '📤', () => this.usePropRemove())
-    
+
     // 撤回道具
     this.createPropButton(375, startY, '撤回', '↩️', () => this.usePropUndo())
-    
+
     // 洗牌道具
     this.createPropButton(375 + gap, startY, '洗牌', '🔀', () => this.usePropShuffle())
   }
 
   createPropButton(x: number, y: number, text: string, icon: string, callback: () => void) {
     const btn = this.add.container(x, y)
-    
+
     // 蓝色背景
     const bg = this.add.graphics()
     bg.fillStyle(0x0099FF, 1)
     bg.fillRoundedRect(-60, -40, 120, 80, 16)
     bg.lineStyle(4, 0x000000, 1)
     bg.strokeRoundedRect(-60, -40, 120, 80, 16)
-    
+
     // 图标
     const iconText = this.add.text(0, -10, icon, { fontSize: '40px' }).setOrigin(0.5)
-    
+
     // 文字
     const label = this.add.text(0, 25, text, {
       fontSize: '20px',
       color: '#FFFFFF',
       fontStyle: 'bold'
     }).setOrigin(0.5)
-    
+
     // 加号角标
     const badge = this.add.graphics()
     badge.fillStyle(0x000000, 1)
@@ -222,7 +265,7 @@ export default class GameScene extends Phaser.Scene {
       hitAreaCallback: Phaser.Geom.Rectangle.Contains,
       useHandCursor: true
     })
-    
+
     bg.on('pointerdown', () => {
       this.tweens.add({
         targets: btn,
@@ -251,7 +294,7 @@ export default class GameScene extends Phaser.Scene {
 
     tilesToRemove.forEach((tile, index) => {
       this.holdingTiles.push(tile)
-      
+
       // 计算暂存区位置 (居中显示在槽位上方)
       // 槽位Y坐标是 1100. 暂存区可以在 940.
       const holdX = 285 + (this.holdingTiles.length - 1) * 90
@@ -268,7 +311,7 @@ export default class GameScene extends Phaser.Scene {
           // 重新绑定点击事件以移回槽位
           tile.sprite?.off('pointerdown')
           tile.sprite?.on('pointerdown', () => {
-             if (!this.isPaused) this.handleHoldingTileClick(tile)
+            if (!this.isPaused) this.handleHoldingTileClick(tile)
           })
         }
       })
@@ -313,7 +356,7 @@ export default class GameScene extends Phaser.Scene {
     this.holdingTiles.forEach((tile, index) => {
       const holdX = 285 + index * 90
       const holdY = this.slotY - 160
-      
+
       this.tweens.add({
         targets: tile.sprite,
         x: holdX,
@@ -335,7 +378,7 @@ export default class GameScene extends Phaser.Scene {
     // 为了简单起见，我们将其移动到中心区域的一个随机位置，并设置较高的 Z 轴
     const x = 375 + Phaser.Math.Between(-100, 100)
     const y = 400 + Phaser.Math.Between(-100, 100)
-    
+
     // 找到最高的 Z 轴索引以确保它在最上层
     let maxZ = 0
     this.tiles.forEach(t => maxZ = Math.max(maxZ, t.position.z))
@@ -445,21 +488,22 @@ export default class GameScene extends Phaser.Scene {
   createMenuButton(x: number, y: number, text: string, color: number, callback: () => void) {
     const btn = this.add.container(x, y)
     btn.name = 'pause_btn'
-    
+
     const bg = this.add.graphics()
     bg.fillStyle(color, 1)
     bg.fillRoundedRect(-120, -35, 240, 70, 16)
-    
-    const label = this.add.text(0, 0, text, {
-      fontSize: '32px',
+
+    const label = this.add.text(0, 2, text, {
+      fontSize: '28px',
       color: '#ffffff',
-      fontStyle: 'bold'
+      fontStyle: 'bold',
+      padding: { top: 4, bottom: 4 }
     }).setOrigin(0.5)
-    
+
     btn.add([bg, label])
     btn.setSize(240, 70)
     btn.setDepth(3002)
-    
+
     // Fix: Use config object for setInteractive
     bg.setInteractive({
       hitArea: new Phaser.Geom.Rectangle(-120, -35, 240, 70),
@@ -467,7 +511,7 @@ export default class GameScene extends Phaser.Scene {
       useHandCursor: true
     })
     bg.on('pointerdown', callback)
-    
+
     return btn
   }
 
@@ -487,7 +531,7 @@ export default class GameScene extends Phaser.Scene {
 
   createLevelFromConfig(config: any) {
     const { tiles, gridSize } = config
-    
+
     // 如果缺少 gridSize，则使用默认 startX (仅用于基于网格的后备方案)
     let startX = 375
     if (gridSize && gridSize.cols) {
@@ -495,18 +539,19 @@ export default class GameScene extends Phaser.Scene {
     }
 
     const startY = 300
+    const tilesToCreate: TileData[] = []
 
     tiles.forEach((tileConfig: any, index: number) => {
       let offsetX = 0
       let offsetY = 0
-      
+
       if (tileConfig.layer % 2 !== 0) {
         offsetX = this.tileSize / 2
         offsetY = this.tileSize / 2
       }
 
       let x, y
-      
+
       if (typeof tileConfig.x === 'number' && typeof tileConfig.y === 'number') {
         x = tileConfig.x
         y = tileConfig.y
@@ -516,7 +561,7 @@ export default class GameScene extends Phaser.Scene {
         x = xOffset
         y = yOffset
       }
-      
+
       const tileData: TileData = {
         id: `tile-${index}`,
         type: tileConfig.type,
@@ -525,33 +570,56 @@ export default class GameScene extends Phaser.Scene {
       }
 
       this.tiles.set(tileData.id, tileData)
-      this.createTile(tileData)
+      tilesToCreate.push(tileData)
     })
 
-    this.updateTileClickability()
+    // 分帧创建方块，避免瞬间卡顿 (Time-Slicing)
+    let currentIndex = 0
+    const batchSize = 15 // 每帧创建的数量
+
+    const creationTimer = this.time.addEvent({
+      delay: 1,
+      loop: true,
+      callback: () => {
+        const end = Math.min(currentIndex + batchSize, tilesToCreate.length)
+        for (let i = currentIndex; i < end; i++) {
+          this.createTile(tilesToCreate[i])
+        }
+        currentIndex += batchSize
+
+        if (currentIndex >= tilesToCreate.length) {
+          creationTimer.remove()
+
+          // 所有方块创建完毕后，更新状态并播放入场动画
+          this.updateTileClickability()
+          this.animateTilesEntry()
+        }
+      }
+    })
   }
 
   createTile(tileData: TileData) {
     const { position, type } = tileData
-    const container = this.add.container(position.x, position.y)
 
-    const shadow = this.add.graphics()
-    shadow.fillStyle(0x000000, 0.2)
-    shadow.fillRoundedRect(-this.tileSize / 2 + 6, -this.tileSize / 2 + 6, this.tileSize, this.tileSize, 12)
-    
-    const bg = this.add.graphics()
-    
-    this.drawTileShape(bg, true)
+    // 初始位置在屏幕底部，用于浮动动画
+    const startY = position.y + 800
+    const container = this.add.container(position.x, startY)
+
+    // 使用预渲染的纹理替代 Graphics (性能优化)
+    // 默认先用被遮挡的纹理，稍后在动画结束或 redrawTile 时更新
+    const bg = this.add.image(0, 0, 'tile-blocked')
+    bg.setOrigin(0.5)
 
     const icon = this.add.image(0, 0, type)
     icon.setDisplaySize(this.tileSize * 0.7, this.tileSize * 0.7)
+    icon.setTint(0x888888) // 默认暗色
 
-    container.add([shadow, bg, icon])
+    container.add([bg, icon])
     container.setDepth(position.z * 100)
     container.setData('tileId', tileData.id)
     container.setData('bg', bg)
     container.setData('icon', icon)
-    
+
     container.setSize(this.tileSize, this.tileSize)
     container.setInteractive({ useHandCursor: true })
 
@@ -560,13 +628,13 @@ export default class GameScene extends Phaser.Scene {
         this.handleTileClick(tileData.id)
       }
     })
-    
+
     container.on('pointerover', () => {
       if (tileData.isClickable && !this.isPaused) {
         container.setScale(1.05)
       }
     })
-    
+
     container.on('pointerout', () => {
       container.setScale(1)
     })
@@ -574,35 +642,42 @@ export default class GameScene extends Phaser.Scene {
     tileData.sprite = container
   }
 
-  drawTileShape(graphics: Phaser.GameObjects.Graphics, isClickable: boolean) {
-    graphics.clear()
-    const cornerRadius = 12
-    
-    graphics.fillStyle(this.colors.tileBg, 1)
-    graphics.fillRoundedRect(-this.tileSize / 2, -this.tileSize / 2, this.tileSize, this.tileSize, cornerRadius)
-    
-    if (isClickable) {
-      graphics.lineStyle(4, this.colors.tileBorder, 1)
-    } else {
-      graphics.fillStyle(0x000000, 0.3)
-      graphics.fillRoundedRect(-this.tileSize / 2, -this.tileSize / 2, this.tileSize, this.tileSize, cornerRadius)
-      graphics.lineStyle(4, this.colors.tileBorderBlocked, 1)
-    }
-    
-    graphics.strokeRoundedRect(-this.tileSize / 2, -this.tileSize / 2, this.tileSize, this.tileSize, cornerRadius)
+  animateTilesEntry() {
+    const sprites = Array.from(this.tiles.values()).map(t => t.sprite).filter(s => s !== undefined) as Phaser.GameObjects.Container[]
+
+    if (sprites.length === 0) return
+
+    this.tweens.add({
+      targets: sprites,
+      y: (target: Phaser.GameObjects.Container) => {
+        const tileId = target.getData('tileId')
+        const tile = this.tiles.get(tileId)
+        return tile ? tile.position.y : target.y
+      },
+      duration: 600,
+      ease: 'Back.easeOut',
+      delay: (target: Phaser.GameObjects.Container) => {
+        const tileId = target.getData('tileId')
+        const tile = this.tiles.get(tileId)
+        if (!tile) return 0
+        // 根据层级和索引计算延迟
+        return tile.position.z * 30 + (parseInt(tile.id.split('-')[1]) % 20) * 10
+      }
+    })
   }
 
   redrawTile(tileData: TileData) {
     const container = tileData.sprite
     if (!container) return
 
-    const bg = container.getData('bg') as Phaser.GameObjects.Graphics
-    this.drawTileShape(bg, tileData.isClickable)
-    
+    const bg = container.getData('bg') as Phaser.GameObjects.Image
     const icon = container.getData('icon') as Phaser.GameObjects.Image
+
     if (tileData.isClickable) {
+      bg.setTexture('tile-base')
       icon.setTint(0xffffff)
     } else {
+      bg.setTexture('tile-blocked')
       icon.setTint(0x888888)
     }
   }
@@ -619,25 +694,14 @@ export default class GameScene extends Phaser.Scene {
       if (otherTile.id === tile.id) continue
       if (otherTile.position.z <= tile.position.z) continue
 
-      const overlap = this.checkOverlap(
-        tile.position.x,
-        tile.position.y,
-        otherTile.position.x,
-        otherTile.position.y
-      )
+      const dx = Math.abs(tile.position.x - otherTile.position.x)
+      const dy = Math.abs(tile.position.y - otherTile.position.y)
 
-      if (overlap) {
+      if (dx < this.tileSize && dy < this.tileSize) {
         return true
       }
     }
     return false
-  }
-
-  checkOverlap(x1: number, y1: number, x2: number, y2: number): boolean {
-    const dx = Math.abs(x1 - x2)
-    const dy = Math.abs(y1 - y2)
-    const overlapThreshold = this.tileSize * 0.8
-    return dx < overlapThreshold && dy < overlapThreshold
   }
 
   handleTileClick(tileId: string) {
@@ -663,7 +727,7 @@ export default class GameScene extends Phaser.Scene {
 
     this.tiles.delete(tileId)
     this.slots.push(tileData)
-    
+
     const slotX = 80 + (this.slots.length - 1) * 90
     this.tweens.add({
       targets: tileData.sprite,
@@ -685,7 +749,7 @@ export default class GameScene extends Phaser.Scene {
 
   checkMatch() {
     const typeCount: { [key: string]: TileData[] } = {}
-    
+
     this.slots.forEach(tile => {
       if (!typeCount[tile.type]) {
         typeCount[tile.type] = []
@@ -719,7 +783,7 @@ export default class GameScene extends Phaser.Scene {
           emitting: false
         })
         particles.setDepth(2000)
-        
+
         particles.explode(5)
         this.time.delayedCall(800, () => particles.destroy())
       }
@@ -727,7 +791,7 @@ export default class GameScene extends Phaser.Scene {
 
     matched.forEach(tile => {
       if (!tile.sprite) return
-      
+
       this.tweens.add({
         targets: tile.sprite,
         alpha: 0,
@@ -759,7 +823,7 @@ export default class GameScene extends Phaser.Scene {
     this.slots.forEach((tile, index) => {
       if (!tile.sprite) return
       const slotX = 80 + index * 90
-      
+
       this.tweens.add({
         targets: tile.sprite,
         x: slotX,
@@ -778,7 +842,7 @@ export default class GameScene extends Phaser.Scene {
     try {
       const currentId = parseInt(this.currentLevelId.split('-')[1])
       nextLevelId = `level-${currentId + 1}`
-      
+
       api.submitProgress(this.currentLevelId, 'completed', this.score)
         .then(() => console.log('Progress saved to API'))
         .catch((e: any) => console.error('Failed to save progress to API', e))
@@ -804,7 +868,7 @@ export default class GameScene extends Phaser.Scene {
     const overlay = this.add.rectangle(375, 667, 750, 1334, 0x000000, 0.7)
     overlay.setDepth(2000)
     overlay.setInteractive()
-    
+
     const panel = this.add.graphics()
     panel.fillStyle(0xFFF5E6, 1)
     panel.fillRoundedRect(125, 400, 500, 500, 20)
@@ -826,7 +890,7 @@ export default class GameScene extends Phaser.Scene {
 
     const btnY = 700
 
-    if (nextLevelId && nextLevelId !== 'level-4') {
+    if (nextLevelId && nextLevelId !== 'level-21') {
       this.createMenuButton(375, btnY, '下一关', 0x2E8B57, () => {
         this.scene.restart({ levelId: nextLevelId })
       })

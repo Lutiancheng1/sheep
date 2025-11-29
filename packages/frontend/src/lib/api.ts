@@ -1,4 +1,6 @@
-const API_BASE_URL = 'http://localhost:3001';
+const API_BASE_URL = typeof window !== 'undefined'
+  ? `http://${window.location.hostname}:3001`
+  : 'http://localhost:3001';
 
 export const api = {
   token: typeof window !== 'undefined' ? localStorage.getItem('token') : null,
@@ -54,7 +56,7 @@ export const api = {
       body: JSON.stringify({ levelId, status, score }),
     });
   },
-  
+
   async getProgressHistory() {
     return this.request('/progress/history');
   },
