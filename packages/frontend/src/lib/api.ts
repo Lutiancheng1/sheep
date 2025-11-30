@@ -30,6 +30,13 @@ export const api = {
       return response.json();
     } catch (error) {
       console.error('API Request Failed:', error);
+      // If unauthorized or bad request (likely invalid user), clear token and reload
+      if (error instanceof Error && (error.message.includes('Unauthorized') || error.message.includes('Bad Request'))) {
+        localStorage.removeItem('token');
+        if (typeof window !== 'undefined') {
+          window.location.reload();
+        }
+      }
       throw error;
     }
   },
@@ -40,6 +47,21 @@ export const api = {
       this.setToken(data.access_token);
     }
     return data;
+  },
+
+  async refreshToken() {
+    try {
+      if (!this.token) return null;
+      const data = await this.request('/auth/refresh', { method: 'POST' });
+      if (data.access_token) {
+        this.setToken(data.access_token);
+        console.log('Token refreshed successfully');
+      }
+      return data;
+    } catch (e) {
+      console.warn('Failed to refresh token', e);
+      return null;
+    }
   },
 
   async getLevels() {

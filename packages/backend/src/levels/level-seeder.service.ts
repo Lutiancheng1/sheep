@@ -10,20 +10,26 @@ export class LevelSeederService implements OnModuleInit {
   }
 
   private async seedLevels() {
-    const levelsCount = 20; // Expanded to 20 levels
-    const tileTypes = [
-      'carrot', 'wheat', 'wood', 'grass', 'stone', 'coin', 'shovel',
-    ];
+    const levelsCount = 20;
 
     for (let i = 1; i <= levelsCount; i++) {
       const levelId = `level-${i}`;
       console.log(`Seeding/Updating ${levelId}...`);
 
       const config = this.getLevelConfig(i);
-      const levelData = this.generateLevelData(config, tileTypes);
+      const types = this.getTileTypesForLevel(i);
+      const levelData = this.generateLevelData(config, types);
 
       await this.levelsService.create(levelId, levelData, i);
     }
+  }
+
+  private getTileTypesForLevel(level: number): string[] {
+    // User requested all levels to use all 14 types
+    return [
+      'carrot', 'wheat', 'wood', 'grass', 'stone', 'coin', 'shovel',
+      'corn', 'milk', 'egg', 'wool', 'apple', 'pumpkin', 'flower'
+    ];
   }
 
   private getLevelConfig(level: number) {

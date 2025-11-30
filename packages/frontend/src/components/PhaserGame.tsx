@@ -11,21 +11,22 @@ import Leaderboard from './Leaderboard'
 export default function PhaserGame() {
   const gameRef = useRef<HTMLDivElement>(null)
   const phaserGameInstanceRef = useRef<Phaser.Game | null>(null)
-  
+
   const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [leaderboardLevelId, setLeaderboardLevelId] = useState<string | undefined>(undefined)
 
   useEffect(() => {
-    const handleOpenLeaderboard = (e: CustomEvent<{ levelId?: string }>) => {
-      setLeaderboardLevelId(e.detail?.levelId)
+    const handleOpenLeaderboard = (e: Event) => {
+      const customEvent = e as CustomEvent<{ levelId?: string }>
+      setLeaderboardLevelId(customEvent.detail?.levelId)
       setShowLeaderboard(true)
     }
 
-    window.addEventListener('OPEN_LEADERBOARD' as any, handleOpenLeaderboard as any)
+    window.addEventListener('OPEN_LEADERBOARD', handleOpenLeaderboard as EventListener)
 
     if (!gameRef.current) return
 
-    const config: Phaser.Types.Core.GameConfig = {
+    const config: Phaser.Types.Core.GameConfig & { resolution?: number } = {
       type: Phaser.AUTO,
       parent: gameRef.current,
       width: 750,
@@ -42,13 +43,19 @@ export default function PhaserGame() {
       scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH
+      },
+      resolution: window.devicePixelRatio,
+      render: {
+        pixelArt: false,
+        antialias: true,
+        roundPixels: true
       }
     }
 
     phaserGameInstanceRef.current = new Phaser.Game(config)
 
     return () => {
-      window.removeEventListener('OPEN_LEADERBOARD' as any, handleOpenLeaderboard as any)
+      window.removeEventListener('OPEN_LEADERBOARD', handleOpenLeaderboard as EventListener)
       phaserGameInstanceRef.current?.destroy(true)
       phaserGameInstanceRef.current = null
     }
@@ -57,9 +64,9 @@ export default function PhaserGame() {
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
       <div ref={gameRef} style={{ width: '100%', height: '100%' }} />
-      <Leaderboard 
-        isOpen={showLeaderboard} 
-        onClose={() => setShowLeaderboard(false)} 
+      <Leaderboard
+        isOpen={showLeaderboard}
+        onClose={() => setShowLeaderboard(false)}
         levelId={leaderboardLevelId}
       />
     </div>

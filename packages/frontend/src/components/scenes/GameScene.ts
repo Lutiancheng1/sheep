@@ -49,6 +49,13 @@ export default class GameScene extends Phaser.Scene {
     this.load.image('stone', '/icons/stone.png')
     this.load.image('coin', '/icons/coin.png')
     this.load.image('shovel', '/icons/shovel.png')
+    this.load.image('corn', '/icons/corn.png')
+    this.load.image('milk', '/icons/milk.png')
+    this.load.image('egg', '/icons/egg.png')
+    this.load.image('wool', '/icons/wool.png')
+    this.load.image('apple', '/icons/apple.png')
+    this.load.image('pumpkin', '/icons/pumpkin.png')
+    this.load.image('flower', '/icons/flower.png')
 
     // 加载背景音乐
     this.load.audio('bgm', '/assets/bgm.mp3')
@@ -63,7 +70,10 @@ export default class GameScene extends Phaser.Scene {
   private isPaused = false
 
   create() {
-    // 播放背景音乐
+    // 0. 自动续签 Token (Sliding Expiration)
+    api.refreshToken().catch(err => console.warn('Token refresh failed:', err));
+
+    // 1. 播放背景音乐
     if (!this.sound.get('bgm')) {
       this.sound.play('bgm', { loop: true, volume: 0.5 })
     } else if (!this.sound.get('bgm').isPlaying) {

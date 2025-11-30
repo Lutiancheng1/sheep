@@ -11,7 +11,8 @@ const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 1000;
 
 const TILE_TYPES = [
-    'carrot', 'wheat', 'wood', 'grass', 'stone', 'coin', 'shovel'
+    'carrot', 'wheat', 'wood', 'grass', 'stone', 'coin', 'shovel',
+    'corn', 'milk', 'egg', 'wool', 'apple', 'pumpkin', 'flower'
 ];
 
 interface Tile {
