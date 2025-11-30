@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  # Database
+  postgres:
+    image: postgres:14
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: sheep_game
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - sheep_network
+
+  # Cache
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - sheep_network
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: packages/backend/Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_DATABASE: sheep_game
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - sheep_network
+
+  # Frontend (Game)
+  frontend:
+    build:
+      context: .
+      dockerfile: packages/frontend/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+    depends_on:
+      - backend
+    networks:
+      - sheep_network
+
+  # Admin Dashboard
+  admin:
+    build:
+      context: .
+      dockerfile: packages/admin/Dockerfile
+    ports:
+      - "3002:80"
+    depends_on:
+      - backend
+    networks:
+      - sheep_network
+
+volumes:
+  postgres_data:
+
+
+networks:
+  sheep_network:
+    driver: bridge

@@ -185,8 +185,9 @@
   - [ ] 反作弊系统
   - [ ] 游戏回放验证
   - [ ] 接口限流
-- [ ] 部署
-  - [ ] Docker 镜像
+- [/] 部署
+  - [x] Docker 镜像 (Frontend, Backend, Admin)
+  - [x] Docker Compose 编排
   - [ ] Kubernetes 配置
   - [ ] 监控与日志
   - [ ] 错误追踪（Sentry）
