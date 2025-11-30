@@ -1,16 +1,22 @@
-import { useState } from 'react'
-import { ConfigProvider } from 'antd'
-import zhCN from 'antd/locale/zh_CN'
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import MainLayout from './layouts/MainLayout';
+import LevelList from './pages/LevelList';
+import LevelEditor from './pages/LevelEditor';
 
-function App() {
+const App: React.FC = () => {
   return (
-    <ConfigProvider locale={zhCN}>
-      <div style={{ padding: '20px' }}>
-        <h1>羊了个羊 - 管理后台</h1>
-        <p>正在初始化...</p>
-      </div>
-    </ConfigProvider>
-  )
-}
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<MainLayout />}>
+          <Route index element={<Navigate to="/levels" replace />} />
+          <Route path="levels" element={<LevelList />} />
+          <Route path="levels/new" element={<LevelEditor />} />
+          <Route path="levels/:id" element={<LevelEditor />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
+};
 
-export default App
+export default App;

@@ -67,6 +67,17 @@ export const api = {
 
   async getLevelLeaderboard(levelId: string, limit = 10) {
     return this.request(`/leaderboard/level/${levelId}?limit=${limit}`);
+  },
+
+  async getItemStatus() {
+    return this.request('/items/status');
+  },
+
+  async useItem(type: 'remove' | 'undo' | 'shuffle') {
+    return this.request('/items/use', {
+      method: 'POST',
+      body: JSON.stringify({ type }),
+    });
   }
 };
 

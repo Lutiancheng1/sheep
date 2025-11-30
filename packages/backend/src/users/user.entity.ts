@@ -25,4 +25,10 @@ export class User {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @Column({ type: 'simple-json', default: '{}' })
+  dailyItemUsage: { remove: number; undo: number; shuffle: number };
+
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  lastItemResetDate: Date;
 }

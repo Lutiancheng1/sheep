@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { LevelsModule } from './levels/levels.module';
 import { GameProgressModule } from './progress/game-progress.module';
+import { ItemsModule } from './items/items.module';
 import configuration from './config/configuration';
 
 import { RedisModule } from '@nestjs-modules/ioredis';
@@ -46,8 +47,9 @@ import { LeaderboardModule } from './leaderboard/leaderboard.module';
     LevelsModule,
     GameProgressModule,
     LeaderboardModule,
+    ItemsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

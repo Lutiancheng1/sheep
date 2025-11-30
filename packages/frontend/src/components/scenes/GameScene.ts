@@ -24,6 +24,7 @@ export default class GameScene extends Phaser.Scene {
   private scoreText?: Phaser.GameObjects.Text
   private score = 0
   private tileSize = 80
+  private itemCounts = { remove: 0, undo: 0, shuffle: 0 }
 
   // 农场主题配色
   private colors = {
@@ -120,7 +121,22 @@ export default class GameScene extends Phaser.Scene {
 
     this.createTopUI()
     this.drawSlotArea()
-    this.createPropButtons()
+
+    // 获取道具状态
+    api.getItemStatus().then(data => {
+      if (data && data.usage && data.limits) {
+        this.itemCounts = {
+          remove: (data.limits.remove || 2) - (data.usage.remove || 0),
+          undo: (data.limits.undo || 2) - (data.usage.undo || 0),
+          shuffle: (data.limits.shuffle || 2) - (data.usage.shuffle || 0)
+        }
+        this.createPropButtons()
+      }
+    }).catch(err => {
+      console.error('Failed to fetch item status:', err)
+      this.createPropButtons() // Fallback
+    })
+
     this.loadLevel(this.currentLevelId)
   }
 
@@ -251,13 +267,22 @@ export default class GameScene extends Phaser.Scene {
       fontStyle: 'bold'
     }).setOrigin(0.5)
 
-    // 加号角标
+    // 加号角标 -> 改为剩余次数
     const badge = this.add.graphics()
     badge.fillStyle(0x000000, 1)
     badge.fillCircle(50, -30, 15)
-    const plus = this.add.text(50, -30, '+', { fontSize: '20px', color: '#FFF' }).setOrigin(0.5)
 
-    btn.add([bg, iconText, label, badge, plus])
+    // 获取对应类型的剩余次数
+    let count = 0
+    if (text === '移出') count = this.itemCounts.remove
+    if (text === '撤回') count = this.itemCounts.undo
+    if (text === '洗牌') count = this.itemCounts.shuffle
+
+    const countText = this.add.text(50, -30, `${count}`, { fontSize: '20px', color: '#FFF' }).setOrigin(0.5)
+    // 保存引用以便更新
+    btn.setData('countText', countText)
+
+    btn.add([bg, iconText, label, badge, countText])
     btn.setSize(120, 80)
     // Fix: Use config object for setInteractive
     bg.setInteractive({
@@ -280,12 +305,32 @@ export default class GameScene extends Phaser.Scene {
   // 道具逻辑占位
   private holdingTiles: TileData[] = []
 
-  usePropRemove() {
+  async usePropRemove() {
+    if (this.itemCounts.remove <= 0) {
+      this.cameras.main.shake(200, 0.005)
+      // TODO: Show ad prompt
+      return
+    }
+
     // 移出道具逻辑
     if (this.slots.length === 0) return
     if (this.holdingTiles.length >= 3) {
       this.cameras.main.shake(200, 0.005)
       return // 暂存区已满
+    }
+
+    try {
+      const result = await api.useItem('remove')
+      if (result && result.success) {
+        this.itemCounts.remove = result.remaining
+        this.updatePropButtonText('移出', this.itemCounts.remove)
+      } else {
+        this.cameras.main.shake(200, 0.005)
+        return
+      }
+    } catch (e) {
+      console.error('Failed to use item:', e)
+      return
     }
 
     // 从槽位移动最多3个方块到暂存区
@@ -367,8 +412,27 @@ export default class GameScene extends Phaser.Scene {
     })
   }
 
-  usePropUndo() {
+  async usePropUndo() {
+    if (this.itemCounts.undo <= 0) {
+      this.cameras.main.shake(200, 0.005)
+      return
+    }
+
     if (this.slots.length === 0) return
+
+    try {
+      const result = await api.useItem('undo')
+      if (result && result.success) {
+        this.itemCounts.undo = result.remaining
+        this.updatePropButtonText('撤回', this.itemCounts.undo)
+      } else {
+        this.cameras.main.shake(200, 0.005)
+        return
+      }
+    } catch (e) {
+      console.error('Failed to use item:', e)
+      return
+    }
 
     // 获取槽位中最后一个方块
     const tile = this.slots.pop()
@@ -405,8 +469,27 @@ export default class GameScene extends Phaser.Scene {
     this.rearrangeSlots()
   }
 
-  usePropShuffle() {
+  async usePropShuffle() {
+    if (this.itemCounts.shuffle <= 0) {
+      this.cameras.main.shake(200, 0.005)
+      return
+    }
+
     if (this.tiles.size === 0) return
+
+    try {
+      const result = await api.useItem('shuffle')
+      if (result && result.success) {
+        this.itemCounts.shuffle = result.remaining
+        this.updatePropButtonText('洗牌', this.itemCounts.shuffle)
+      } else {
+        this.cameras.main.shake(200, 0.005)
+        return
+      }
+    } catch (e) {
+      console.error('Failed to use item:', e)
+      return
+    }
 
     // 1. 收集场上所有类型的方块
     const types: string[] = []
@@ -862,6 +945,19 @@ export default class GameScene extends Phaser.Scene {
     }
 
     this.createPopup('🎉 恭喜过关', '#2E8B57', '再玩一次', nextLevelId)
+  }
+
+  updatePropButtonText(text: string, count: number) {
+    const containers = this.children.list.filter(c => c.type === 'Container') as Phaser.GameObjects.Container[]
+    containers.forEach(c => {
+      const hasText = c.list.some(child => child instanceof Phaser.GameObjects.Text && (child as Phaser.GameObjects.Text).text === text)
+      if (hasText) {
+        const countText = c.getData('countText') as Phaser.GameObjects.Text
+        if (countText) {
+          countText.setText(`${count}`)
+        }
+      }
+    })
   }
 
   createPopup(title: string, color: string, btnText: string, nextLevelId?: string) {
