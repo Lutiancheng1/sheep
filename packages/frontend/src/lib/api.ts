@@ -1,6 +1,6 @@
 const API_BASE_URL = typeof window !== 'undefined'
-  ? `http://${window.location.hostname}:3001`
-  : 'http://localhost:3001';
+  ? `http://${window.location.hostname}:4001`
+  : 'http://localhost:4001';
 
 export const api = {
   token: typeof window !== 'undefined' ? localStorage.getItem('token') : null,

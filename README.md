@@ -36,9 +36,9 @@ npm install
 npm run dev
 
 # 单独启动
-cd packages/frontend && npm run dev    # 前端 (localhost:3000)
-cd packages/backend && npm run dev     # 后端 (localhost:4000)
-cd packages/admin && npm run dev       # 管理后台 (localhost:3001)
+cd packages/frontend && npm run dev    # 前端 (localhost:4000)
+cd packages/backend && npm run start:dev # 后端 (localhost:4001)
+cd packages/admin && npm run dev       # 管理后台 (localhost:4002)
 ```
 
 ### 构建
