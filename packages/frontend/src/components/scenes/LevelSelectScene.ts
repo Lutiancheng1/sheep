@@ -43,6 +43,28 @@ export default class LevelSelectScene extends Phaser.Scene {
       window.dispatchEvent(new CustomEvent('OPEN_LEADERBOARD'));
     });
 
+    // 开发者工具: 一键解锁所有关卡 (测试用)
+    const devBtn = this.add.text(580, 80, '🔓', {
+      fontSize: '40px'
+    }).setOrigin(0.5).setDepth(1)
+      .setInteractive({ useHandCursor: true });
+
+    devBtn.on('pointerdown', () => {
+      const allLevels = Array.from({ length: 20 }, (_, i) => `level-${i + 1}`);
+      localStorage.setItem('unlockedLevels', JSON.stringify(allLevels));
+      // Show feedback
+      const toast = this.add.text(375, 200, '已解锁所有关卡!', {
+        fontSize: '32px',
+        color: '#00ff00',
+        backgroundColor: '#000000',
+        padding: { x: 10, y: 5 }
+      }).setOrigin(0.5).setDepth(10);
+      
+      this.time.delayedCall(1000, () => {
+        this.scene.restart();
+      });
+    });
+
     // 关卡列表容器
     const listContainer = this.add.container(0, 0);
 

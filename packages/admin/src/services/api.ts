@@ -26,8 +26,17 @@ export const getLevel = async (id: string): Promise<Level> => {
     return response.data;
 };
 
+export const getUsers = async () => {
+    const response = await api.get('/users');
+    return response.data;
+};
+
 export const createLevel = async (levelData: { levelId: string; difficulty: number; data: any }) => {
     const response = await api.post('/levels', levelData);
     return response.data;
 };
 
+export const getLogs = async (params?: { userId?: string; action?: string; limit?: number; offset?: number }) => {
+    const response = await api.get('/logs', { params });
+    return response.data;
+};

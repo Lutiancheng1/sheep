@@ -3,10 +3,10 @@ import { Card, Button, Input, Form, Slider, Row, Col, message, Radio, Space } fr
 import { useParams, useNavigate } from 'react-router-dom';
 import { createLevel, getLevel } from '../services/api';
 
-const TILE_SIZE = 40; // Editor scale (0.5x of game size 80)
+const TILE_SIZE = 40; // 编辑器缩放 (游戏尺寸 80 的 0.5 倍)
 const GAME_TILE_SIZE = 80;
-// Game canvas is roughly 750x1334 (mobile) or similar.
-// Let's define a large enough canvas for the editor.
+// 游戏画布大约是 750x1334 (移动端) 或类似尺寸。
+// 为编辑器定义一个足够大的画布。
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 1000;
 
@@ -128,7 +128,7 @@ const LevelEditor: React.FC = () => {
                 difficulty: values.difficulty,
                 data: {
                     tiles: tiles,
-                    gridSize: { cols: 8, rows: 10 } // Dynamic?
+                    gridSize: { cols: 8, rows: 10 } // 动态?
                 }
             };
 
@@ -213,7 +213,7 @@ const LevelEditor: React.FC = () => {
                             }}
                             onClick={handleCanvasClick}
                         >
-                            {/* Grid Lines */}
+                            {/* 网格线 */}
                             {Array.from({ length: CANVAS_WIDTH / TILE_SIZE }).map((_, i) => (
                                 <div key={`v-${i}`} style={{ position: 'absolute', left: i * TILE_SIZE, top: 0, bottom: 0, width: 1, background: '#f0f0f0' }} />
                             ))}
@@ -221,22 +221,22 @@ const LevelEditor: React.FC = () => {
                                 <div key={`h-${i}`} style={{ position: 'absolute', top: i * TILE_SIZE, left: 0, right: 0, height: 1, background: '#f0f0f0' }} />
                             ))}
 
-                            {/* Center Marker */}
+                            {/* 中心标记 */}
                             <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 2, background: 'red', opacity: 0.3 }} />
                             <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: 2, background: 'red', opacity: 0.3 }} />
 
-                            {/* Render Tiles */}
+                            {/* 渲染方块 */}
                             {tiles.map(tile => {
-                                // Map Game Coords to Editor Coords
-                                // We are using a direct scaling approach now.
-                                // Editor X = Game X * 0.5
-                                // Editor Y = Game Y * 0.5
+                                // 映射游戏坐标到编辑器坐标
+                                // 我们现在使用直接缩放的方法。
+                                // 编辑器 X = 游戏 X * 0.5
+                                // 编辑器 Y = 游戏 Y * 0.5
                                 const left = tile.x * 0.5;
                                 const top = tile.y * 0.5;
 
                                 const isCurrentLayer = tile.layer === currentLayer;
 
-                                if (tile.layer > currentLayer) return null; // Hide upper layers
+                                if (tile.layer > currentLayer) return null; // 隐藏上层图层
 
                                 return (
                                     <div

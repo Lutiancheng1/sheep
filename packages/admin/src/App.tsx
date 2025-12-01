@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import LevelList from './pages/LevelList';
 import LevelEditor from './pages/LevelEditor';
+import UserList from './pages/UserList';
+import UserLogs from './pages/UserLogs';
 
 const App: React.FC = () => {
   return (
@@ -13,6 +15,8 @@ const App: React.FC = () => {
           <Route path="levels" element={<LevelList />} />
           <Route path="levels/new" element={<LevelEditor />} />
           <Route path="levels/:id" element={<LevelEditor />} />
+          <Route path="users" element={<UserList />} />
+          <Route path="logs" element={<UserLogs />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -31,4 +31,7 @@ export class User {
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   lastItemResetDate: Date;
+
+  @Column({ default: 0 })
+  totalPlaytimeSeconds: number;
 }

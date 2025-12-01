@@ -16,6 +16,14 @@ const MainLayout: React.FC = () => {
             key: '/levels',
             label: '关卡管理',
         },
+        {
+            key: '/users',
+            label: '用户管理',
+        },
+        {
+            key: '/logs',
+            label: '日志审计',
+        },
     ];
 
     return (

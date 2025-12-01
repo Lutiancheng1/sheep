@@ -100,6 +100,28 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ type }),
     });
+  },
+
+  async login(username: string, pass: string) {
+    const data = await this.request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password: pass }),
+    });
+    if (data.access_token) {
+      this.setToken(data.access_token);
+    }
+    return data;
+  },
+
+  async bindAccount(username: string, pass: string) {
+    const data = await this.request('/auth/bind', {
+      method: 'POST',
+      body: JSON.stringify({ username, password: pass }),
+    });
+    if (data.access_token) {
+      this.setToken(data.access_token);
+    }
+    return data;
   }
 };
 

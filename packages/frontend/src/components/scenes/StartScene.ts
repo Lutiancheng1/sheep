@@ -113,6 +113,24 @@ export default class StartScene extends Phaser.Scene {
       })
     })
 
+    // 设置按钮 (右上角)
+    const settingsBtn = this.add.text(680, 50, '⚙️', {
+      fontSize: '48px'
+    }).setOrigin(0.5)
+    settingsBtn.setInteractive({ useHandCursor: true })
+    
+    settingsBtn.on('pointerdown', () => {
+      this.tweens.add({
+        targets: settingsBtn,
+        scale: 0.8,
+        duration: 100,
+        yoyo: true,
+        onComplete: () => {
+          window.dispatchEvent(new CustomEvent('OPEN_SETTINGS'))
+        }
+      })
+    })
+
     // 简单的浮动动画
     this.tweens.add({
       targets: title,

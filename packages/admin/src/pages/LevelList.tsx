@@ -16,7 +16,7 @@ const LevelList: React.FC = () => {
         setLoading(true);
         try {
             const data = await getLevels();
-            // Sort by levelId number if possible
+            // 如果可能，按 levelId 数字排序
             const sorted = data.sort((a, b) => {
                 const numA = parseInt(a.levelId.replace('level-', '')) || 0;
                 const numB = parseInt(b.levelId.replace('level-', '')) || 0;

@@ -12,7 +12,7 @@ const PhaserGame = dynamic(() => import('@/components/PhaserGame'), {
 export default function Home() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-900 to-purple-900">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md h-screen max-h-screen relative">
         <PhaserGame />
       </div>
     </main>

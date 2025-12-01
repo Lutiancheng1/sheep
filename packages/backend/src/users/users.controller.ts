@@ -10,4 +10,9 @@ export class UsersController {
   async findOne(@Param('username') username: string) {
     return this.usersService.findOne(username);
   }
+
+  @Get()
+  async findAll() {
+    return this.usersService.findAll();
+  }
 }

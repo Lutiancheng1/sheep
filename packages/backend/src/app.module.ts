@@ -12,6 +12,7 @@ import configuration from './config/configuration';
 
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
+import { UserLogsModule } from './user-logs/user-logs.module';
 
 @Module({
   imports: [
@@ -48,8 +49,9 @@ import { LeaderboardModule } from './leaderboard/leaderboard.module';
     GameProgressModule,
     LeaderboardModule,
     ItemsModule,
+    UserLogsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

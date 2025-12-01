@@ -1,9 +1,31 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { LevelsService } from './levels.service';
 
+interface TileData {
+  id: string;
+  type: string | null;
+  x: number;
+  y: number;
+  layer: number;
+  row: number;
+  col: number;
+}
+
+interface LevelConfig {
+  tiles: number;
+  layers: number;
+  pattern: string;
+  width?: number;
+  height?: number;
+  size?: number;
+  turns?: number;
+  piles?: number;
+  density?: number;
+}
+
 @Injectable()
 export class LevelSeederService implements OnModuleInit {
-  constructor(private readonly levelsService: LevelsService) { }
+  constructor(private readonly levelsService: LevelsService) {}
 
   async onModuleInit() {
     await this.seedLevels();
@@ -17,113 +39,187 @@ export class LevelSeederService implements OnModuleInit {
       console.log(`Seeding/Updating ${levelId}...`);
 
       const config = this.getLevelConfig(i);
-      const types = this.getTileTypesForLevel(i);
+      const types = this.getTileTypesForLevel();
       const levelData = this.generateLevelData(config, types);
 
       await this.levelsService.create(levelId, levelData, i);
     }
   }
 
-  private getTileTypesForLevel(level: number): string[] {
-    // User requested all levels to use all 14 types
+  private getTileTypesForLevel(): string[] {
     return [
-      'carrot', 'wheat', 'wood', 'grass', 'stone', 'coin', 'shovel',
-      'corn', 'milk', 'egg', 'wool', 'apple', 'pumpkin', 'flower'
+      'carrot',
+      'wheat',
+      'wood',
+      'grass',
+      'stone',
+      'coin',
+      'shovel',
+      'corn',
+      'milk',
+      'egg',
+      'wool',
+      'apple',
+      'pumpkin',
+      'flower',
     ];
   }
 
-  private getLevelConfig(level: number) {
-    // Difficulty Curve: 1-20
-    // Phase 1: Tutorial (L1)
-    // Phase 2: Strategy (L2-L5)
-    // Phase 3: Hell (L6-L10)
-    // Phase 4: Nightmare (L11-L15)
-    // Phase 5: Abyss (L16-L20)
+  private getLevelConfig(level: number): LevelConfig {
+    // 难度曲线: 1-20
+    // 移动端安全区: X[40, 710], Y[150, 900]
+    // 中心 Y: 525
+
     switch (level) {
-      // Phase 1
-      case 1: return { tiles: 21, layers: 2, pattern: 'staggered', width: 3, height: 3 };
+      // 第一阶段: 教学
+      case 1:
+        return {
+          tiles: 24,
+          layers: 2,
+          pattern: 'staggered',
+          width: 3,
+          height: 4,
+        };
 
-      // Phase 2
-      case 2: return { tiles: 54, layers: 4, pattern: 'brick', width: 5, height: 5 };
-      case 3: return { tiles: 72, layers: 5, pattern: 'pyramid', size: 5 };
-      case 4: return { tiles: 90, layers: 6, pattern: 'spiral', turns: 2.5 };
-      case 5: return { tiles: 108, layers: 7, pattern: 'cross', size: 6 };
+      // 第二阶段: 叹息之墙 (难度激增)
+      // 模仿原版游戏: 难度巨大跳跃
+      case 2:
+        return { tiles: 210, layers: 20, pattern: 'dense_pile', size: 6 }; // ~70 组三消
 
-      // Phase 3
-      case 6: return { tiles: 135, layers: 8, pattern: 'staggered', width: 6, height: 7 };
-      case 7: return { tiles: 162, layers: 9, pattern: 'pyramid', size: 7 };
-      case 8: return { tiles: 189, layers: 10, pattern: 'spiral', turns: 4 };
-      case 9: return { tiles: 216, layers: 11, pattern: 'random', density: 0.9 };
-      case 10: return { tiles: 240, layers: 12, pattern: 'boss', size: 8 };
+      // 第三阶段: 策略与耐力
+      case 3:
+        return { tiles: 180, layers: 15, pattern: 'scattered_pile', piles: 3 };
+      case 4:
+        return { tiles: 240, layers: 18, pattern: 'spiral', turns: 4 };
+      case 5:
+        return { tiles: 270, layers: 22, pattern: 'dense_pile', size: 7 };
 
-      // Phase 4: Nightmare
-      case 11: return { tiles: 261, layers: 13, pattern: 'brick', width: 7, height: 8 };
-      case 12: return { tiles: 279, layers: 13, pattern: 'pyramid', size: 8 };
-      case 13: return { tiles: 300, layers: 14, pattern: 'spiral', turns: 5 };
-      case 14: return { tiles: 315, layers: 14, pattern: 'cross', size: 8 };
-      case 15: return { tiles: 330, layers: 15, pattern: 'boss', size: 9 };
+      // 第四阶段: 地狱模式
+      case 6:
+        return { tiles: 300, layers: 25, pattern: 'pyramid', size: 8 };
+      case 7:
+        return { tiles: 330, layers: 28, pattern: 'scattered_pile', piles: 4 };
+      case 8:
+        return { tiles: 360, layers: 30, pattern: 'dense_pile', size: 8 };
+      case 9:
+        return { tiles: 390, layers: 32, pattern: 'random', density: 1.2 };
+      case 10:
+        return { tiles: 420, layers: 35, pattern: 'boss', size: 9 };
 
-      // Phase 5: Abyss
-      case 16: return { tiles: 345, layers: 15, pattern: 'random', density: 1.0 };
-      case 17: return { tiles: 360, layers: 16, pattern: 'staggered', width: 8, height: 9 };
-      case 18: return { tiles: 375, layers: 16, pattern: 'spiral', turns: 6 };
-      case 19: return { tiles: 390, layers: 17, pattern: 'brick', width: 8, height: 9 };
-      case 20: return { tiles: 420, layers: 18, pattern: 'boss', size: 10 };
-
-      default: return { tiles: 30, layers: 2, pattern: 'random' };
+      // 第五阶段: 噩梦模式 (L11-L20) - 增加密度和层数
+      default:
+        return {
+          tiles: 300 + (level - 10) * 30,
+          layers: 20 + (level - 10) * 2,
+          pattern: level % 2 === 0 ? 'dense_pile' : 'scattered_pile',
+          piles: 3 + Math.floor((level - 10) / 3),
+        };
     }
   }
 
-  private generateLevelData(config: any, types: string[]) {
+  private generateLevelData(config: LevelConfig, types: string[]) {
     const totalTiles = Math.ceil(config.tiles / 3) * 3;
-    // Pool is no longer needed here, types are assigned later
-    const tiles: any[] = [];
+    const tiles: TileData[] = [];
 
+    // 移动端安全区中心
     const centerX = 375;
-    const centerY = 480; // Safe center
+    const centerY = 580; // 从 525 下移至 580 以获得更好的垂直居中效果
     const tileSize = 80;
 
     let tileIndex = 0;
-    const tilesPerLayer = Math.ceil(totalTiles / config.layers);
 
-    // Helper to add a tile
+    // 添加方块的辅助函数
     const addTile = (x: number, y: number, layer: number) => {
       if (tileIndex >= totalTiles) return;
 
-      // Add slight jitter for natural look
-      const jitter = 4;
+      // 增加抖动以产生“凌乱”感（下方方块更难看清）
+      const jitter = 12;
       const jX = (Math.random() - 0.5) * jitter;
       const jY = (Math.random() - 0.5) * jitter;
 
       tiles.push({
         id: `tile-${tileIndex}`,
-        type: null, // Assigned later
+        type: null, // 稍后分配
         x: x + jX,
         y: y + jY,
         layer: layer,
-        row: 0, col: 0
+        row: 0,
+        col: 0,
       });
       tileIndex++;
     };
 
-    // Generation Strategies
+    // 生成策略
+
     for (let l = 0; l < config.layers; l++) {
-      const layerTiles = Math.min(tilesPerLayer, totalTiles - tileIndex);
-      if (layerTiles <= 0) break;
+      const remaining = totalTiles - tileIndex;
+      if (remaining <= 0) break;
 
-      // Calculate layer offset (higher layers slightly offset to show depth)
-      // Visual Layering: Offset every other layer by half a tile to expose corners below
-      const halfSize = tileSize / 2;
-      const structuralOffsetX = (l % 2) * halfSize;
-      const structuralOffsetY = (l % 2) * halfSize;
+      // 视觉深度的层偏移
+      const structuralOffsetX = (l % 2) * (tileSize / 2);
+      const structuralOffsetY = (l % 2) * (tileSize / 2);
 
-      // Random jitter for natural look (kept small)
-      const layerOffsetX = (Math.random() - 0.5) * 5;
-      const layerOffsetY = (Math.random() - 0.5) * 5;
+      if (config.pattern === 'dense_pile') {
+        // 中心密集堆叠
+        const size = config.size || 6;
+        const startX = centerX - (size * tileSize) / 2;
+        const startY = centerY - (size * tileSize) / 2;
 
-      let placed = 0;
+        // 填充网格，但随机跳过一些以产生孔洞/不规则性
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            if (tileIndex >= totalTiles) break;
 
-      if (config.pattern === 'staggered' || config.pattern === 'brick') {
+            // 中心位置概率更高，边缘更低
+            const dist = Math.sqrt(
+              Math.pow(r - size / 2, 2) + Math.pow(c - size / 2, 2),
+            );
+            const prob = 1 - dist / size;
+
+            if (Math.random() < prob + 0.2) {
+              // 基础概率 + 邻近度
+              addTile(
+                startX + c * tileSize + structuralOffsetX,
+                startY + r * tileSize + structuralOffsetY,
+                l + 1,
+              );
+            }
+          }
+        }
+      } else if (config.pattern === 'scattered_pile') {
+        // 多个小堆
+        const piles = config.piles || 3;
+        const pileSize = 3;
+        const pilePixelSize = pileSize * tileSize; // 240px
+        const halfPile = pilePixelSize / 2;
+
+        // 安全区 X: [50, 700] (收紧边距)
+        // 中心必须在 [50 + half, 700 - half] 范围内
+        const minX = 50 + halfPile;
+        const maxX = 700 - halfPile;
+
+        // 安全区 Y: [200, 950] (下移)
+        const minY = 200 + halfPile;
+        const maxY = 950 - halfPile;
+
+        for (let p = 0; p < piles; p++) {
+          const pX = minX + Math.random() * (maxX - minX);
+          const pY = minY + Math.random() * (maxY - minY);
+
+          const startX = pX - halfPile;
+          const startY = pY - halfPile;
+
+          for (let r = 0; r < pileSize; r++) {
+            for (let c = 0; c < pileSize; c++) {
+              if (tileIndex >= totalTiles) break;
+              if (Math.random() > 0.3) {
+                addTile(startX + c * tileSize, startY + r * tileSize, l + 1);
+              }
+            }
+          }
+        }
+      } else if (config.pattern === 'staggered' || config.pattern === 'brick') {
+        // 经典模式（保留用于第1关或增加多样性）
         const w = config.width || 4;
         const h = config.height || 4;
         const startX = centerX - ((w - 1) * tileSize) / 2;
@@ -131,201 +227,115 @@ export class LevelSeederService implements OnModuleInit {
 
         for (let r = 0; r < h; r++) {
           for (let c = 0; c < w; c++) {
-            if (placed >= layerTiles) break;
-            // Brick: Offset every other row
-            const rowOffset = (config.pattern === 'brick' && r % 2 !== 0) ? tileSize / 2 : 0;
+            if (tileIndex >= totalTiles) break;
+            const rowOffset =
+              config.pattern === 'brick' && r % 2 !== 0 ? tileSize / 2 : 0;
             addTile(
-              startX + c * tileSize + rowOffset + layerOffsetX + structuralOffsetX,
-              startY + r * tileSize + layerOffsetY + structuralOffsetY,
-              l + 1
-            );
-            placed++;
-          }
-        }
-      }
-      else if (config.pattern === 'pyramid') {
-        const size = config.size || 4;
-        for (let r = 0; r < size; r++) {
-          const rowWidth = size - Math.abs(r - size / 2) * 1.5; // Tapering
-          const startRowX = centerX - (rowWidth * tileSize) / 2;
-          const rowY = centerY - (size * tileSize) / 2 + r * tileSize;
-
-          for (let c = 0; c < rowWidth; c++) {
-            if (placed >= layerTiles) break;
-            addTile(
-              startRowX + c * tileSize + layerOffsetX + structuralOffsetX,
-              rowY + layerOffsetY + structuralOffsetY,
-              l + 1
-            );
-            placed++;
-          }
-        }
-      }
-      else if (config.pattern === 'spiral') {
-        // Grid Spiral Walk (Right -> Down -> Left -> Up)
-        let x = 0;
-        let y = 0;
-        let dx = 1;
-        let dy = 0;
-        let segmentLength = 1;
-        let segmentPassed = 0;
-        let turns = 0;
-
-        while (placed < layerTiles) {
-          // Constrain to safe area: Col [-4, 4], Row [-4, 6]
-          if (Math.abs(x) <= 4 && y >= -4 && y <= 6) {
-            addTile(
-              centerX + x * tileSize + layerOffsetX + structuralOffsetX,
-              centerY + y * tileSize + layerOffsetY + structuralOffsetY,
-              l + 1
-            );
-            placed++;
-          }
-
-          x += dx;
-          y += dy;
-          segmentPassed++;
-
-          if (segmentPassed >= segmentLength) {
-            segmentPassed = 0;
-            // Rotate direction
-            const temp = dx;
-            dx = -dy;
-            dy = temp;
-            turns++;
-            if (turns % 2 === 0) {
-              segmentLength++;
-            }
-          }
-
-          // Safety break to prevent infinite loops if spiral grows too large
-          if (Math.abs(x) > 10 || Math.abs(y) > 10) break;
-        }
-      }
-      else if (config.pattern === 'cross') {
-        const size = config.size || 5;
-        const startX = centerX - (size * tileSize) / 2;
-        const startY = centerY - (size * tileSize) / 2;
-
-        for (let i = 0; i < size; i++) {
-          for (let j = 0; j < size; j++) {
-            if (placed >= layerTiles) break;
-            if (i === j || i + j === size - 1) {
-              addTile(
-                startX + j * tileSize + structuralOffsetX,
-                startY + i * tileSize + structuralOffsetY,
-                l + 1
-              );
-              placed++;
-            }
-          }
-        }
-        // Fill remaining with random grid slots
-        const occupied = new Set<string>();
-        // Mark cross as occupied
-        for (let i = 0; i < size; i++) {
-          for (let j = 0; j < size; j++) {
-            if (i === j || i + j === size - 1) {
-              occupied.add(`${Math.floor(startX / tileSize) + j},${Math.floor(startY / tileSize) + i}`);
-            }
-          }
-        }
-
-        while (placed < layerTiles) {
-          const rC = Math.floor((Math.random() - 0.5) * 8);
-          const rR = Math.floor((Math.random() - 0.5) * 8);
-          const key = `${rC},${rR}`;
-          if (!occupied.has(key)) {
-            addTile(
-              centerX + rC * tileSize + structuralOffsetX,
-              centerY + rR * tileSize + structuralOffsetY,
-              l + 1
-            );
-            occupied.add(key);
-            placed++;
-          }
-        }
-      }
-      else if (config.pattern === 'boss') {
-        // Boss: Dense Center Grid + Outer Scatter
-        const centerSize = 4;
-        const startX = centerX - ((centerSize - 1) * tileSize) / 2;
-        const startY = centerY - ((centerSize - 1) * tileSize) / 2;
-
-        // 1. Fill Center Grid
-        for (let r = 0; r < centerSize; r++) {
-          for (let c = 0; c < centerSize; c++) {
-            if (placed >= layerTiles) break;
-            addTile(
-              startX + c * tileSize + structuralOffsetX,
+              startX + c * tileSize + rowOffset + structuralOffsetX,
               startY + r * tileSize + structuralOffsetY,
-              l + 1
+              l + 1,
             );
-            placed++;
           }
         }
+      } else {
+        // 兜底：安全区内随机放置
+        const count = Math.min(remaining, 15);
 
-        // 2. Scatter remaining in outer ring
-        const occupied = new Set<string>();
-        while (placed < layerTiles) {
-          // Constrain to safe area: Col [-4, 4], Row [-4, 6]
-          const rC = Math.floor(Math.random() * 9) - 4; // -4 to 4
-          const rR = Math.floor(Math.random() * 11) - 4; // -4 to 6
+        // 安全区: X[50, 700], Y[200, 950]
+        // 方块大小: 80
+        // 相对于中心 (375) 的最大列索引:
+        // 左: (375 - 50) / 80 = 4.06 -> -4
+        // 右: (700 - 375) / 80 = 4.06 -> +3
 
-          // Check if inside center (approximate center grid is -1.5 to 1.5)
-          const inCenter = Math.abs(rC) <= 1 && Math.abs(rR) <= 1;
-          const key = `${rC},${rR}`;
+        for (let k = 0; k < count; k++) {
+          const c = Math.floor(Math.random() * 8) - 4; // -4 到 3
+          const r = Math.floor(Math.random() * 9) - 4; // -4 到 4
 
-          if (!inCenter && !occupied.has(key)) {
-            addTile(
-              centerX + rC * tileSize + structuralOffsetX,
-              centerY + rR * tileSize + structuralOffsetY,
-              l + 1
-            );
-            occupied.add(key);
-            placed++;
-          }
-        }
-      }
-      else {
-        // Random Grid (No Overlap)
-        const occupied = new Set<string>();
-        while (placed < layerTiles) {
-          // Constrain to safe area: Col [-4, 4], Row [-4, 6]
-          const rC = Math.floor(Math.random() * 9) - 4; // -4 to 4
-          const rR = Math.floor(Math.random() * 11) - 4; // -4 to 6
-          const key = `${rC},${rR}`;
-
-          if (!occupied.has(key)) {
-            addTile(
-              centerX + rC * tileSize + structuralOffsetX,
-              centerY + rR * tileSize + structuralOffsetY,
-              l + 1
-            );
-            occupied.add(key);
-            placed++;
-          }
+          addTile(
+            centerX + c * tileSize + structuralOffsetX,
+            centerY + r * tileSize + structuralOffsetY,
+            l + 1,
+          );
         }
       }
     }
 
-    // 4. Assign types ensuring solvability
+    // 确保达到目标数量（如果循环提前结束，用随机方块填充）
+    while (tileIndex < totalTiles) {
+      const c = Math.floor(Math.random() * 8) - 4;
+      const r = Math.floor(Math.random() * 9) - 4;
+      addTile(
+        centerX + c * tileSize,
+        centerY + r * tileSize,
+        Math.floor(Math.random() * config.layers) + 1,
+      );
+    }
+
+    // --- 生成后居中与边界检查 ---
+    if (tiles.length > 0) {
+      // 计算中心点的包围盒
+      let minCX = Infinity,
+        maxCX = -Infinity;
+      let minCY = Infinity,
+        maxCY = -Infinity;
+
+      tiles.forEach((t) => {
+        minCX = Math.min(minCX, t.x);
+        maxCX = Math.max(maxCX, t.x);
+        minCY = Math.min(minCY, t.y);
+        maxCY = Math.max(maxCY, t.y);
+      });
+
+      // 计算中心点包围盒的中心
+      // 这实际上代表了布局的视觉中心
+      const currentCenterX = (minCX + maxCX) / 2;
+      const currentCenterY = (minCY + maxCY) / 2;
+
+      // 目标中心（屏幕中心）
+      const targetCenterX = 375;
+      const targetCenterY = 580;
+
+      const offsetX = targetCenterX - currentCenterX;
+      const offsetY = targetCenterY - currentCenterY;
+
+      // 应用偏移
+      tiles.forEach((t) => {
+        t.x += offsetX;
+        t.y += offsetY;
+      });
+
+      // 最终安全钳制
+      // 前端从中心渲染方块。
+      // 安全区: X[50, 700], Y[200, 950]
+      // 方块半径 = 40
+      // 所以中心必须在 [50+40, 700-40] = [90, 660] 范围内
+      // Y 中心必须在 [200+40, 950-40] = [240, 910] 范围内
+
+      tiles.forEach((t) => {
+        if (t.x < 90) t.x = 90;
+        if (t.x > 660) t.x = 660;
+        if (t.y < 240) t.y = 240;
+        if (t.y > 910) t.y = 910;
+      });
+    }
+
+    // 4. 分配类型以确保可解性
     this.assignSolvableTypes(tiles, types);
 
     return {
       id: `level-generated`,
       tiles,
-      gridSize: { cols: 8, rows: 8 },
+      gridSize: { cols: 8, rows: 10 },
     };
   }
 
-  private assignSolvableTypes(tiles: any[], types: string[]) {
-    // 1. Build Dependency Graph
-    const blockers = new Map<string, string[]>(); // tileId -> list of tileIds that block it
-    const blocking = new Map<string, string[]>(); // tileId -> list of tileIds it blocks
-    const tileMap = new Map<string, any>();
+  private assignSolvableTypes(tiles: TileData[], types: string[]) {
+    // 1. 构建依赖图
+    const blockers = new Map<string, string[]>(); // tileId -> 阻挡它的 tileId 列表
+    const blocking = new Map<string, string[]>(); // tileId -> 它阻挡的 tileId 列表
+    const tileMap = new Map<string, TileData>();
 
-    tiles.forEach(t => {
+    tiles.forEach((t) => {
       blockers.set(t.id, []);
       blocking.set(t.id, []);
       tileMap.set(t.id, t);
@@ -337,9 +347,9 @@ export class LevelSeederService implements OnModuleInit {
         const tileA = tiles[i];
         const tileB = tiles[j];
 
-        // Check if A blocks B (A is above B)
+        // 检查 A 是否阻挡 B (A 在 B 上方)
         if (tileA.layer > tileB.layer) {
-          // Check overlap (Strict 80x80)
+          // 检查重叠 (严格 80x80)
           const xOverlap = Math.abs(tileA.x - tileB.x) < 80;
           const yOverlap = Math.abs(tileA.y - tileB.y) < 80;
 
@@ -351,14 +361,14 @@ export class LevelSeederService implements OnModuleInit {
       }
     }
 
-    // 2. Solvability Simulation
+    // 2. 可解性模拟
     const currentBlockers = new Map<string, number>();
-    tiles.forEach(t => {
+    tiles.forEach((t) => {
       currentBlockers.set(t.id, blockers.get(t.id)?.length || 0);
     });
 
     const available: string[] = [];
-    tiles.forEach(t => {
+    tiles.forEach((t) => {
       if ((currentBlockers.get(t.id) || 0) === 0) {
         available.push(t.id);
       }
@@ -372,17 +382,23 @@ export class LevelSeederService implements OnModuleInit {
 
       if (available.length >= 3) {
         for (let k = 0; k < 3; k++) {
+          // 随机选择可用方块以避免线性解锁
           const idx = Math.floor(Math.random() * available.length);
           group.push(available[idx]);
           available.splice(idx, 1);
         }
       } else {
-        // Stuck case: Take all available, fill rest from unassigned
+        // 卡死情况: 取所有可用，其余从“未分配”中填充
         group = [...available];
         available.length = 0;
 
-        const unassigned = tiles.filter(t => !t.type && !group.includes(t.id));
+        const unassigned = tiles.filter(
+          (t) => !t.type && !group.includes(t.id),
+        );
         while (group.length < 3 && unassigned.length > 0) {
+          // 紧急从“未分配”中选取 (可能会破坏严格的可解性，但防止崩溃)
+          // 理想情况下应该回溯，但对于这个游戏，“稍微作弊”是可以接受的
+          // 或者依赖道具 (洗牌/撤回)
           const idx = Math.floor(Math.random() * unassigned.length);
           group.push(unassigned[idx].id);
           unassigned.splice(idx, 1);
@@ -390,22 +406,25 @@ export class LevelSeederService implements OnModuleInit {
       }
 
       if (group.length === 0) {
-        console.warn(`Could not find any tiles to assign! Assigned: ${assignedCount}/${totalTiles}`);
+        console.warn(
+          `Could not find any tiles to assign! Assigned: ${assignedCount}/${totalTiles}`,
+        );
         break;
       }
 
       const type = types[Math.floor(Math.random() * types.length)];
-      group.forEach(tid => {
+      group.forEach((tid) => {
         const t = tileMap.get(tid);
         if (t) t.type = type;
 
         const blockedByThis = blocking.get(tid) || [];
-        blockedByThis.forEach(blockedId => {
+        blockedByThis.forEach((blockedId) => {
           const current = currentBlockers.get(blockedId) || 0;
           if (current > 0) {
             currentBlockers.set(blockedId, current - 1);
             if (current - 1 === 0) {
-              if (!tileMap.get(blockedId).type) {
+              const blockedTile = tileMap.get(blockedId);
+              if (blockedTile && !blockedTile.type) {
                 available.push(blockedId);
               }
             }
@@ -416,14 +435,18 @@ export class LevelSeederService implements OnModuleInit {
       assignedCount += group.length;
     }
 
-    // Final check
-    const unassignedCount = tiles.filter(t => !t.type).length;
+    // 最终检查
+    const unassignedCount = tiles.filter((t) => !t.type).length;
     if (unassignedCount > 0) {
-      console.error(`Finished assignment with ${unassignedCount} unassigned tiles!`);
-      // Emergency fill
-      tiles.filter(t => !t.type).forEach(t => {
-        t.type = types[Math.floor(Math.random() * types.length)];
-      });
+      console.error(
+        `Finished assignment with ${unassignedCount} unassigned tiles!`,
+      );
+      // 紧急填充
+      tiles
+        .filter((t) => !t.type)
+        .forEach((t) => {
+          t.type = types[Math.floor(Math.random() * types.length)];
+        });
     }
   }
 }

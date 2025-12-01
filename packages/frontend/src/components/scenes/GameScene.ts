@@ -1,6 +1,7 @@
 // 游戏主场景 - 农场主题版
 import * as Phaser from 'phaser'
 import { api } from '../../lib/api'
+import { Analytics } from '../../lib/analytics'
 
 interface TilePosition {
   x: number
@@ -65,6 +66,9 @@ export default class GameScene extends Phaser.Scene {
 
   init(data: { levelId: string }) {
     this.currentLevelId = data.levelId || 'level-1'
+    this.events.on('shutdown', () => {
+      Analytics.endSession();
+    });
   }
 
   private isPaused = false
@@ -686,6 +690,10 @@ export default class GameScene extends Phaser.Scene {
           // 所有方块创建完毕后，更新状态并播放入场动画
           this.updateTileClickability()
           this.animateTilesEntry()
+
+          // Analytics
+          Analytics.startSession();
+          Analytics.logEvent('LEVEL_START', { levelId: this.currentLevelId });
         }
       }
     })
@@ -694,9 +702,10 @@ export default class GameScene extends Phaser.Scene {
   createTile(tileData: TileData) {
     const { position, type } = tileData
 
-    // 初始位置在屏幕底部，用于浮动动画
-    const startY = position.y + 800
+    // 初始位置在屏幕上方，用于下落淡入动画
+    const startY = -100
     const container = this.add.container(position.x, startY)
+    container.setAlpha(0) // 初始透明
 
     // 使用预渲染的纹理替代 Graphics (性能优化)
     // 默认先用被遮挡的纹理，稍后在动画结束或 redrawTile 时更新
@@ -747,14 +756,15 @@ export default class GameScene extends Phaser.Scene {
         const tile = this.tiles.get(tileId)
         return tile ? tile.position.y : target.y
       },
-      duration: 600,
-      ease: 'Back.easeOut',
+      alpha: 1, // 淡入效果
+      duration: 800, // 稍慢一点，更有质感
+      ease: 'Bounce.easeOut', // 弹跳效果，模拟落地
       delay: (target: Phaser.GameObjects.Container) => {
         const tileId = target.getData('tileId')
         const tile = this.tiles.get(tileId)
         if (!tile) return 0
-        // 根据层级和索引计算延迟
-        return tile.position.z * 30 + (parseInt(tile.id.split('-')[1]) % 20) * 10
+        // 根据层级和索引计算延迟，产生波浪感
+        return tile.position.z * 50 + (parseInt(tile.id.split('-')[1]) % 20) * 20
       }
     })
   }
@@ -927,18 +937,20 @@ export default class GameScene extends Phaser.Scene {
   }
 
   gameOver() {
+    Analytics.logEvent('LEVEL_FAIL', { levelId: this.currentLevelId, score: this.score });
     this.createPopup('💔 游戏失败', '#FF6B6B', '重新开始')
   }
-
-  victory() {
+  async victory() {
     let nextLevelId = ''
     try {
       const currentId = parseInt(this.currentLevelId.split('-')[1])
       nextLevelId = `level-${currentId + 1}`
-
-      api.submitProgress(this.currentLevelId, 'completed', this.score)
-        .then(() => console.log('Progress saved to API'))
-        .catch((e: any) => console.error('Failed to save progress to API', e))
+      // Submit progress to backend
+      await api.submitProgress(this.currentLevelId, 'completed', this.score)
+      Analytics.logEvent('LEVEL_COMPLETE', { levelId: this.currentLevelId, score: this.score });
+      
+      // Show success modal
+      console.log('Progress saved to API')
 
       const unlockedLevelsStr = localStorage.getItem('unlockedLevels')
       let unlockedLevels = ['level-1']
