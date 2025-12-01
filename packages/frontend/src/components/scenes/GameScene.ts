@@ -95,42 +95,54 @@ export default class GameScene extends Phaser.Scene {
 
     // 优化：预先生成方块背景纹理 (极大提升渲染性能)
     // 修复：确保纹理居中，避免错位
+    // 修复：High-DPI (Retina) 支持 - 生成高分辨率纹理
     if (!this.textures.exists('tile-base')) {
+      const dpr = window.devicePixelRatio || 1
       const padding = 16
       const textureSize = this.tileSize + padding
       const margin = padding / 2
+      
+      // 缩放绘图参数
+      const sTileSize = this.tileSize * dpr
+      const sMargin = margin * dpr
+      const sRadius = 12 * dpr
+      const sLineWidth = 4 * dpr
+      const sTextureSize = textureSize * dpr
+      const sShadowOffset = 6 * dpr
 
       const graphics = this.make.graphics({ x: 0, y: 0 }, false)
 
-      // 阴影 (偏移 6px)
+      // 阴影
       graphics.fillStyle(0x000000, 0.2)
-      graphics.fillRoundedRect(margin + 6, margin + 6, this.tileSize, this.tileSize, 12)
+      graphics.fillRoundedRect(sMargin + sShadowOffset, sMargin + sShadowOffset, sTileSize, sTileSize, sRadius)
 
       // 背景
       graphics.fillStyle(this.colors.tileBg, 1)
-      graphics.fillRoundedRect(margin, margin, this.tileSize, this.tileSize, 12)
+      graphics.fillRoundedRect(sMargin, sMargin, sTileSize, sTileSize, sRadius)
 
       // 边框 (默认状态)
-      graphics.lineStyle(4, this.colors.tileBorder, 1)
-      graphics.strokeRoundedRect(margin, margin, this.tileSize, this.tileSize, 12)
+      graphics.lineStyle(sLineWidth, this.colors.tileBorder, 1)
+      graphics.strokeRoundedRect(sMargin, sMargin, sTileSize, sTileSize, sRadius)
 
-      graphics.generateTexture('tile-base', textureSize, textureSize)
+      graphics.generateTexture('tile-base', sTextureSize, sTextureSize)
 
       // 生成被遮挡的纹理
       graphics.clear()
       // 阴影
       graphics.fillStyle(0x000000, 0.2)
-      graphics.fillRoundedRect(margin + 6, margin + 6, this.tileSize, this.tileSize, 12)
+      graphics.fillRoundedRect(sMargin + sShadowOffset, sMargin + sShadowOffset, sTileSize, sTileSize, sRadius)
 
       // 背景 (变暗)
       graphics.fillStyle(0x000000, 0.3)
-      graphics.fillRoundedRect(margin, margin, this.tileSize, this.tileSize, 12)
+      graphics.fillRoundedRect(sMargin, sMargin, sTileSize, sTileSize, sRadius)
 
       // 边框
-      graphics.lineStyle(4, this.colors.tileBorderBlocked, 1)
-      graphics.strokeRoundedRect(margin, margin, this.tileSize, this.tileSize, 12)
+      graphics.lineStyle(sLineWidth, this.colors.tileBorderBlocked, 1)
+      graphics.strokeRoundedRect(sMargin, sMargin, sTileSize, sTileSize, sRadius)
 
-      graphics.generateTexture('tile-blocked', textureSize, textureSize)
+      graphics.generateTexture('tile-blocked', sTextureSize, sTextureSize)
+      
+      graphics.destroy()
     }
 
     this.createTopUI()
@@ -711,6 +723,7 @@ export default class GameScene extends Phaser.Scene {
     // 默认先用被遮挡的纹理，稍后在动画结束或 redrawTile 时更新
     const bg = this.add.image(0, 0, 'tile-blocked')
     bg.setOrigin(0.5)
+    bg.setDisplaySize(this.tileSize + 16, this.tileSize + 16)
 
     const icon = this.add.image(0, 0, type)
     icon.setDisplaySize(this.tileSize * 0.7, this.tileSize * 0.7)

@@ -98,7 +98,7 @@ export default function PhaserGame() {
           opacity: isLoading ? 1 : 0
         }}>
           <div style={{ fontSize: '48px', marginBottom: '20px', fontWeight: 'bold', color: '#2E8B57' }}>
-            🐑 羊了个羊
+            羊了个羊
           </div>
           <div style={{
             width: '50px',

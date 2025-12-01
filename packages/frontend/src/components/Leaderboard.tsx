@@ -54,7 +54,11 @@ const Leaderboard = ({ isOpen, onClose, levelId }: LeaderboardProps) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
+    <div 
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm"
+      onPointerDown={(e) => e.stopPropagation()}
+      onPointerUp={(e) => e.stopPropagation()}
+    >
       <div className="bg-[#f0f9f0] w-full max-w-md rounded-3xl border-4 border-[#2d5a27] shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
         {/* Header */}
         <div className="bg-[#2d5a27] p-4 flex justify-between items-center">

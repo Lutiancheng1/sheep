@@ -85,14 +85,8 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           onClose();
         }
       }}
-      onMouseDown={(e) => {
-        // 阻止所有鼠标事件穿透
-        e.stopPropagation();
-      }}
-      onTouchStart={(e) => {
-        // 阻止触摸事件穿透（移动端）
-        e.stopPropagation();
-      }}
+      onPointerDown={(e) => e.stopPropagation()}
+      onPointerUp={(e) => e.stopPropagation()}
     >
       <div 
         style={{

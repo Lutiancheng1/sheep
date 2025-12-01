@@ -44,10 +44,12 @@ export default class LevelSelectScene extends Phaser.Scene {
     });
 
     // 开发者工具: 一键解锁所有关卡 (测试用)
+    // 默认隐藏，仅当检测到 F12/开发者工具时显示
     const devBtn = this.add.text(580, 80, '🔓', {
       fontSize: '40px'
     }).setOrigin(0.5).setDepth(1)
-      .setInteractive({ useHandCursor: true });
+      .setInteractive({ useHandCursor: true })
+      .setVisible(false);
 
     devBtn.on('pointerdown', () => {
       const allLevels = Array.from({ length: 20 }, (_, i) => `level-${i + 1}`);
@@ -63,6 +65,29 @@ export default class LevelSelectScene extends Phaser.Scene {
       this.time.delayedCall(1000, () => {
         this.scene.restart();
       });
+    });
+
+    // DevTools Detection Logic
+    this.time.addEvent({
+      delay: 1000,
+      loop: true,
+      callback: () => {
+        // Check for docked DevTools (Window size difference)
+        const threshold = 160;
+        const widthDiff = window.outerWidth - window.innerWidth > threshold;
+        const heightDiff = window.outerHeight - window.innerHeight > threshold;
+        
+        if (widthDiff || heightDiff) {
+          devBtn.setVisible(true);
+        } else {
+          devBtn.setVisible(false);
+        }
+      }
+    });
+
+    // Also listen for F12 key (Optimistic)
+    this.input.keyboard?.on('keydown-F12', () => {
+        devBtn.setVisible(true);
     });
 
     // 关卡列表容器
