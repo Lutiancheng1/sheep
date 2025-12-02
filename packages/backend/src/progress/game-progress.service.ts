@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GameProgress } from './game-progress.entity';
@@ -7,6 +7,8 @@ import { LeaderboardService } from '../leaderboard/leaderboard.service';
 
 @Injectable()
 export class GameProgressService {
+  private readonly logger = new Logger(GameProgressService.name);
+
   constructor(
     @InjectRepository(GameProgress)
     private progressRepository: Repository<GameProgress>,
@@ -19,20 +21,32 @@ export class GameProgressService {
     status: string,
     score: number,
   ): Promise<GameProgress> {
-    const progress = this.progressRepository.create({
-      user: { id: userId }, // Map to user relation
-      levelId,
-      status,
-      score,
-    });
-    const savedProgress = await this.progressRepository.save(progress);
+    this.logger.log(
+      `保存游戏进度 - userId: ${userId}, levelId: ${levelId}, status: ${status}, score: ${score}`,
+    );
 
-    if (status === 'completed') {
-      // Update scores (handles best score logic and global accumulation)
-      await this.leaderboardService.updateScores(userId, levelId, score);
+    try {
+      const progress = this.progressRepository.create({
+        user: { id: userId }, // Map to user relation
+        levelId,
+        status,
+        score,
+      });
+      const savedProgress = await this.progressRepository.save(progress);
+      this.logger.log(`游戏进度已保存 - progressId: ${savedProgress.id}`);
+
+      if (status === 'completed') {
+        // Update scores (handles best score logic and global accumulation)
+        this.logger.log(`更新排行榜分数...`);
+        await this.leaderboardService.updateScores(userId, levelId, score);
+        this.logger.log(`排行榜分数更新完成`);
+      }
+
+      return savedProgress;
+    } catch (error) {
+      this.logger.error(`保存失败:`, error);
+      throw error;
     }
-
-    return savedProgress;
   }
 
   async findByUser(userId: string): Promise<GameProgress[]> {
@@ -43,15 +57,14 @@ export class GameProgressService {
   }
 
   async getUnlockedLevels(userId: string): Promise<string[]> {
-    const completed = await this.progressRepository.find({
-      where: { userId, status: 'completed' },
-      select: ['levelId'],
-    });
-    // Logic to determine next unlocked level could be here, or just return completed ones
-    // For now, return unique completed level IDs
-    const completedIds = [...new Set(completed.map((p) => p.levelId))];
-    // Assuming level-1 is always unlocked, and completing level-N unlocks level-(N+1)
-    // This logic might be better placed in a higher level service or just return completed list
-    return completedIds;
+    // 优化: 使用 DISTINCT 查询数据库，避免拉取所有记录
+    const result = await this.progressRepository
+      .createQueryBuilder('progress')
+      .select('DISTINCT progress.levelId', 'levelId')
+      .where('progress.userId = :userId', { userId })
+      .andWhere('progress.status = :status', { status: 'completed' })
+      .getRawMany<{ levelId: string }>();
+
+    return result.map((row) => row.levelId);
   }
 }
