@@ -177,9 +177,18 @@
     - [x] JWT 认证与 AdminGuard
     - [x] 记住密码功能
     - [x] 退出登录二次确认
+  - [x] 管理员登录
+    - [x] JWT 认证与 AdminGuard
+    - [x] 记住密码功能
+    - [x] 退出登录二次确认
 - [x] 用户管理
   - [x] 用户列表 (ID, 用户名, 注册时间)
   - [x] 用户详情 (最高分, 当前关卡)
+  - [x] 用户筛选 (ID/用户名/类型)
+  - [x] 用户删除
+    - [x] 手动级联删除 (修复500错误)
+    - [x] 删除二次确认
+  - [x] 游客清理功能
   - [x] 用户筛选 (ID/用户名/类型)
   - [x] 用户删除
     - [x] 手动级联删除 (修复500错误)
@@ -194,6 +203,8 @@
   - [ ] 关卡测试功能
 - [x] 数据统计
   - [x] 用户行为日志 (User Logs)
+    - [x] 行为类型本地化 (Action Localization)
+    - [x] 实时自动刷新 (Switch + Interval)
     - [x] 行为类型本地化 (Action Localization)
     - [x] 实时自动刷新 (Switch + Interval)
   - [x] 游玩时长统计 (Playtime Tracking)
