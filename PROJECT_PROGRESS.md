@@ -172,6 +172,7 @@
 - [x] 管理后台（Milestone 2）
 - [x] 后台基础框架
   - [x] React + Ant Design 搭建
+  - [x] 国际化支持 (中/英) - 全局 ConfigProvider 配置
   - [ ] RBAC 权限管理
   - [x] 管理员登录
     - [x] JWT 认证与 AdminGuard
@@ -231,9 +232,9 @@
   - [x] 农场主题 Banner 背景
   - [x] Glassmorphism (毛玻璃) 卡片效果
   - [x] 品牌标识优化 (Sheep Admin)
-- [x] 侧边栏优化
+  - [x] 侧边栏优化
   - [x] 头部 Logo 与标题
-- [x] 网站图标
+  - [x] 网站图标
   - [x] 配置 Favicon
 
 ## 阶段 6：社交功能（Milestone 3）

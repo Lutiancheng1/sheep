@@ -9,4 +9,4 @@ import { UsersModule } from '../users/users.module';
   providers: [LeaderboardService],
   exports: [LeaderboardService],
 })
-export class LeaderboardModule {}
+export class LeaderboardModule { }

@@ -9,12 +9,15 @@ export class ItemsController {
     @UseGuards(JwtAuthGuard)
     @Get('status')
     async getStatus(@Request() req: any) {
-        return this.itemsService.getItemStatus(req.user.userId);
+        return this.itemsService.getItemStatus(req.user.id);
     }
 
     @UseGuards(JwtAuthGuard)
     @Post('use')
-    async useItem(@Request() req: any, @Body() body: { type: 'remove' | 'undo' | 'shuffle' }) {
-        return this.itemsService.useItem(req.user.userId, body.type);
+    async useItem(
+        @Request() req: any,
+        @Body() body: { type: 'remove' | 'undo' | 'shuffle' },
+    ) {
+        return this.itemsService.useItem(req.user.id, body.type);
     }
 }

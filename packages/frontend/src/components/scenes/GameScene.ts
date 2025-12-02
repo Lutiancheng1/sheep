@@ -101,7 +101,7 @@ export default class GameScene extends Phaser.Scene {
       const padding = 16
       const textureSize = this.tileSize + padding
       const margin = padding / 2
-      
+
       // 缩放绘图参数
       const sTileSize = this.tileSize * dpr
       const sMargin = margin * dpr
@@ -141,12 +141,13 @@ export default class GameScene extends Phaser.Scene {
       graphics.strokeRoundedRect(sMargin, sMargin, sTileSize, sTileSize, sRadius)
 
       graphics.generateTexture('tile-blocked', sTextureSize, sTextureSize)
-      
+
       graphics.destroy()
     }
 
     this.createTopUI()
     this.drawSlotArea()
+
 
     // 获取道具状态
     api.getItemStatus().then(data => {
@@ -157,11 +158,18 @@ export default class GameScene extends Phaser.Scene {
           shuffle: (data.limits.shuffle || 2) - (data.usage.shuffle || 0)
         }
         this.createPropButtons()
+      } else {
+        // 使用默认值
+        this.itemCounts = { remove: 2, undo: 2, shuffle: 2 }
+        this.createPropButtons()
       }
     }).catch(err => {
       console.error('Failed to fetch item status:', err)
-      this.createPropButtons() // Fallback
+      // 使用默认值而不是 0
+      this.itemCounts = { remove: 2, undo: 2, shuffle: 2 }
+      this.createPropButtons()
     })
+
 
     this.loadLevel(this.currentLevelId)
   }
@@ -444,7 +452,11 @@ export default class GameScene extends Phaser.Scene {
       return
     }
 
-    if (this.slots.length === 0) return
+    // 检查是否有可撤回的方块（必须在API调用前检查）
+    if (this.slots.length === 0) {
+      this.cameras.main.shake(200, 0.005)
+      return
+    }
 
     try {
       const result = await api.useItem('undo')
@@ -739,12 +751,18 @@ export default class GameScene extends Phaser.Scene {
     container.setInteractive({ useHandCursor: true })
 
     container.on('pointerdown', () => {
+      // 防止点击槽位中的方块
+      if (this.slots.includes(tileData)) return
+
       if (!this.isPaused) {
         this.handleTileClick(tileData.id)
       }
     })
 
     container.on('pointerover', () => {
+      // 防止悬浮高亮槽位中的方块
+      if (this.slots.includes(tileData)) return
+
       if (tileData.isClickable && !this.isPaused) {
         container.setScale(1.05)
       }
@@ -788,6 +806,9 @@ export default class GameScene extends Phaser.Scene {
 
     const bg = container.getData('bg') as Phaser.GameObjects.Image
     const icon = container.getData('icon') as Phaser.GameObjects.Image
+
+    // 防御性检查：确保 bg 和 icon 存在
+    if (!bg || !icon) return
 
     if (tileData.isClickable) {
       bg.setTexture('tile-base')
@@ -961,7 +982,7 @@ export default class GameScene extends Phaser.Scene {
       // Submit progress to backend
       await api.submitProgress(this.currentLevelId, 'completed', this.score)
       Analytics.logEvent('LEVEL_COMPLETE', { levelId: this.currentLevelId, score: this.score });
-      
+
       // Show success modal
       console.log('Progress saved to API')
 

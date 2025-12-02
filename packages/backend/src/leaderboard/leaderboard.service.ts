@@ -60,21 +60,29 @@ export class LeaderboardService {
 
   private async mapLeaderboardData(rangeResult: string[]) {
     const leaderboard = [];
+    let rank = 1; // 真实排名计数器
+
     for (let i = 0; i < rangeResult.length; i += 2) {
       const userId = rangeResult[i];
       const score = parseFloat(rangeResult[i + 1]);
 
       // Fetch user details
-      // Optimization: We could cache user details in Redis or use MGET if we stored them there.
-      // For now, querying DB is fine for small scale.
       const user = await this.usersService.findById(userId);
 
+      // 跳过已删除的用户，不显示在排行榜中
+      if (!user) {
+        this.logger.warn(`排行榜中发现已删除用户: ${userId}，已跳过`);
+        continue;
+      }
+
       leaderboard.push({
-        rank: i / 2 + 1,
+        rank,
         userId,
-        username: user ? user.username : 'Unknown',
+        username: user.username,
         score,
       });
+
+      rank++;
     }
     return leaderboard;
   }

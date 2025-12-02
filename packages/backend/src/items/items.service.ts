@@ -1,12 +1,14 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { User } from '../users/user.entity';
-import { UserLogsService } from '../user-logs/user-logs.service';
+import {Injectable, BadRequestException, Logger} from '@nestjs/common';
+import {InjectRepository} from '@nestjs/typeorm';
+import {Repository} from 'typeorm';
+import {User} from '../users/user.entity';
+import {UserLogsService} from '../user-logs/user-logs.service';
 import dayjs from 'dayjs';
 
 @Injectable()
 export class ItemsService {
+  private readonly logger = new Logger(ItemsService.name);
+
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -16,7 +18,7 @@ export class ItemsService {
   private readonly DAILY_LIMIT = 2;
 
   async getItemStatus(userId: string) {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const user = await this.userRepository.findOne({where: {id: userId}});
     if (!user) {
       throw new BadRequestException('User not found');
     }
@@ -41,7 +43,7 @@ export class ItemsService {
   }
 
   async useItem(userId: string, type: 'remove' | 'undo' | 'shuffle') {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const user = await this.userRepository.findOne({where: {id: userId}});
     if (!user) {
       throw new BadRequestException('User not found');
     }
@@ -52,9 +54,9 @@ export class ItemsService {
     // Ensure it's an object
     let usage = user.dailyItemUsage;
     if (typeof usage !== 'object' || usage === null) {
-      usage = { remove: 0, undo: 0, shuffle: 0 };
+      usage = {remove: 0, undo: 0, shuffle: 0};
     } else {
-      usage = { ...usage };
+      usage = {...usage};
     }
 
     // Ensure all keys exist for safety
@@ -64,21 +66,20 @@ export class ItemsService {
 
     const currentUsage = usage[type] || 0;
 
-    console.log(
-      `[ItemsService] User ${userId} using ${type}. Current: ${currentUsage}, Limit: ${this.DAILY_LIMIT}`,
+    this.logger.log(
+      `用户 ${userId} 使用道具 ${type}，当前次数: ${currentUsage}，限制: ${this.DAILY_LIMIT}`,
     );
 
     if (currentUsage >= this.DAILY_LIMIT) {
-      console.warn(`[ItemsService] User ${userId} reached limit for ${type}`);
-      return { success: false, message: 'Daily limit reached' };
+      this.logger.warn(`用户 ${userId} 的道具 ${type} 已达每日限制`);
+      return {success: false, message: 'Daily limit reached'};
     }
 
     usage[type] = currentUsage + 1;
     user.dailyItemUsage = usage;
 
-    console.log(
-      `[ItemsService] Saving new usage for ${userId}:`,
-      JSON.stringify(usage),
+    this.logger.log(
+      `保存用户 ${userId} 的新使用次数: ${JSON.stringify(usage)}`,
     );
 
     await this.userRepository.save(user);
@@ -89,7 +90,7 @@ export class ItemsService {
       remaining: this.DAILY_LIMIT - usage[type],
     });
 
-    return { success: true, remaining: this.DAILY_LIMIT - usage[type] };
+    return {success: true, remaining: this.DAILY_LIMIT - usage[type]};
   }
 
   private checkAndResetDailyUsage(user: User) {
@@ -98,7 +99,7 @@ export class ItemsService {
 
     // If last reset was not today
     if (!lastReset.isSame(now, 'day')) {
-      user.dailyItemUsage = { remove: 0, undo: 0, shuffle: 0 };
+      user.dailyItemUsage = {remove: 0, undo: 0, shuffle: 0};
       user.lastItemResetDate = now.toDate();
     }
   }

@@ -35,9 +35,17 @@ export class UsersService {
       username,
       passwordHash,
       isGuest,
+      // 显式初始化道具使用次数为 0（表示未使用，剩余 DAILY_LIMIT 次）
+      dailyItemUsage: { remove: 0, undo: 0, shuffle: 0 },
+      lastItemResetDate: new Date(),
     });
+    this.logger.log(
+      `创建的user对象 dailyItemUsage: ${JSON.stringify(user.dailyItemUsage)}`,
+    );
     const savedUser = await this.usersRepository.save(user);
-    this.logger.log(`用户创建成功 - id: ${savedUser.id}`);
+    this.logger.log(
+      `用户创建成功 - id: ${savedUser.id}, dailyItemUsage: ${JSON.stringify(savedUser.dailyItemUsage)}`,
+    );
     return savedUser;
   }
 
@@ -85,7 +93,33 @@ export class UsersService {
       });
       const scores = await pipeline.exec();
 
-      // 3. 组装数据
+      // 3. 批量获取每个用户的最高通关关卡
+      const progressData = await this.gameProgressRepository
+        .createQueryBuilder('progress')
+        .select('progress.userId', 'userId')
+        .addSelect('MAX(progress.levelId)', 'maxLevel')
+        .where('progress.status = :status', { status: 'completed' })
+        .andWhere('progress.userId IN (:...userIds)', {
+          userIds: users.map((u) => u.id),
+        })
+        .groupBy('progress.userId')
+        .getRawMany<{ userId: string; maxLevel: string }>();
+
+      // 创建 userId -> maxLevel 映射
+      const levelMap = new Map<string, number>();
+      progressData.forEach((item) => {
+        // levelId 在数据库中是 varchar，格式可能是 "level-1", "level-2" 等
+        // 提取数字部分
+        const match = item.maxLevel.match(/\d+/);
+        if (match) {
+          const levelNum = parseInt(match[0], 10);
+          if (!isNaN(levelNum)) {
+            levelMap.set(item.userId, levelNum);
+          }
+        }
+      });
+
+      // 4. 组装数据
       return users.map((user, index) => {
         const scoreResult = scores ? scores[index] : [null, null];
         const score =
@@ -96,7 +130,7 @@ export class UsersService {
         return {
           ...user,
           maxScore: score,
-          currentLevel: 1, // Placeholder
+          currentLevel: levelMap.get(user.id) || 0, // 0 表示未通关任何关卡
         };
       });
     } catch (error) {
@@ -159,6 +193,21 @@ export class UsersService {
     });
     await pipeline.exec();
 
+    // 5. 清理所有关卡排行榜
+    const levelKeys = await this.redis.keys('leaderboard:level:*');
+    if (levelKeys.length > 0) {
+      const levelPipeline = this.redis.pipeline();
+      levelKeys.forEach((key) => {
+        userIds.forEach((id) => {
+          levelPipeline.zrem(key, id);
+        });
+      });
+      await levelPipeline.exec();
+      this.logger.log(
+        `已从 ${levelKeys.length} 个关卡排行榜中移除 ${userIds.length} 个游客`,
+      );
+    }
+
     this.logger.log(`清理完成, 共删除 ${userIds.length} 个账户`);
 
     return {
@@ -181,8 +230,21 @@ export class UsersService {
     // 3. 删除用户
     await this.usersRepository.delete(id);
 
-    // 4. 清理 Redis
+    // 4. 清理 Redis 排行榜
     await this.redis.zrem('leaderboard:global', id);
+
+    // 5. 清理所有关卡排行榜 (扫描 leaderboard:level:* 键)
+    const levelKeys = await this.redis.keys('leaderboard:level:*');
+    if (levelKeys.length > 0) {
+      const pipeline = this.redis.pipeline();
+      levelKeys.forEach((key) => {
+        pipeline.zrem(key, id);
+      });
+      await pipeline.exec();
+      this.logger.log(`已从 ${levelKeys.length} 个关卡排行榜中移除用户 ${id}`);
+    }
+
+    // 6. 清理用户缓存
     await this.redis.del(`user:cache:${id}`);
 
     this.logger.log(`用户 ${id} 删除成功`);
