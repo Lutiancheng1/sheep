@@ -1,3 +1,15 @@
+// 确保 crypto 在全局可用 (必须在所有imports之前)
+
+import * as crypto from 'crypto';
+
+if (
+  typeof (globalThis as typeof globalThis & { crypto?: any }).crypto ===
+  'undefined'
+) {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+  (globalThis as any).crypto = (crypto as any).webcrypto || crypto;
+}
+
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -13,6 +25,7 @@ import configuration from './config/configuration';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { UserLogsModule } from './user-logs/user-logs.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -50,6 +63,7 @@ import { UserLogsModule } from './user-logs/user-logs.module';
     LeaderboardModule,
     ItemsModule,
     UserLogsModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

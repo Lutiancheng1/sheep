@@ -1,13 +1,24 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
 import { User } from './user.entity';
+import { GameProgress } from '../progress/game-progress.entity';
+import { UserLog } from '../user-logs/user-log.entity';
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    @InjectRepository(GameProgress)
+    private gameProgressRepository: Repository<GameProgress>,
+    @InjectRepository(UserLog)
+    private userLogsRepository: Repository<UserLog>,
+    @InjectRedis() private readonly redis: Redis,
   ) {}
 
   async findOne(username: string): Promise<User | null> {
@@ -19,45 +30,161 @@ export class UsersService {
     passwordHash?: string,
     isGuest: boolean = false,
   ): Promise<User> {
+    this.logger.log(`创建新用户 - username: ${username}, isGuest: ${isGuest}`);
     const user = this.usersRepository.create({
       username,
       passwordHash,
       isGuest,
     });
-    return this.usersRepository.save(user);
+    const savedUser = await this.usersRepository.save(user);
+    this.logger.log(`用户创建成功 - id: ${savedUser.id}`);
+    return savedUser;
   }
 
   async findById(id: string): Promise<User | null> {
-    return this.usersRepository.findOne({ where: { id } });
+    // 1. 尝试从缓存获取
+    const cacheKey = `user:cache:${id}`;
+    const cached = await this.redis.get(cacheKey);
+    if (cached) {
+      return JSON.parse(cached) as User;
+    }
+
+    // 2. 从数据库获取
+    const user = await this.usersRepository.findOne({ where: { id } });
+
+    // 3. 写入缓存 (有效期 5 分钟)
+    if (user) {
+      await this.redis.set(cacheKey, JSON.stringify(user), 'EX', 300);
+    }
+
+    return user;
   }
 
   async update(id: string, updateData: Partial<User>): Promise<User> {
     await this.usersRepository.update(id, updateData);
+    // 失效缓存
+    await this.redis.del(`user:cache:${id}`);
     return this.usersRepository.findOne({ where: { id } }) as Promise<User>;
   }
 
   async findAll(): Promise<any[]> {
-    const users = await this.usersRepository.find({
-      order: { createdAt: 'DESC' },
-    });
+    try {
+      // 1. 获取所有用户
+      const users = await this.usersRepository.find({
+        order: { createdAt: 'DESC' },
+      });
 
-    // Fetch additional data for each user
-    const usersWithDetails = users.map((user) => {
-      // 1. Get max score from Redis global leaderboard
-      // Note: This requires injecting Redis service or using Redis client directly.
-      // For simplicity, we'll assume 0 if not found or implement Redis injection.
-      // Ideally, we should inject LeaderboardService, but circular dependency might occur.
-      // Let's use a raw Redis client or move this logic to Controller/Facade.
-      // Given the current setup, let's return basic info first and handle Redis in Controller or here if we inject Redis.
-      // 2. Get max level from GameProgress
-      // We need to inject GameProgress repository or service.
-      return {
-        ...user,
-        maxScore: 0, // Placeholder, will implement in Controller or Service with Redis
-        currentLevel: 1, // Placeholder
-      };
-    });
+      if (users.length === 0) {
+        return [];
+      }
 
-    return usersWithDetails;
+      // 2. 批量获取 Redis 中的最高分 (Pipeline)
+      const pipeline = this.redis.pipeline();
+      users.forEach((user) => {
+        pipeline.zscore('leaderboard:global', user.id);
+      });
+      const scores = await pipeline.exec();
+
+      // 3. 组装数据
+      return users.map((user, index) => {
+        const scoreResult = scores ? scores[index] : [null, null];
+        const score =
+          scoreResult && scoreResult[1]
+            ? parseFloat(scoreResult[1] as string)
+            : 0;
+
+        return {
+          ...user,
+          maxScore: score,
+          currentLevel: 1, // Placeholder
+        };
+      });
+    } catch (error) {
+      this.logger.error('findAll error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 查找符合清理条件的无用游客账户
+   * 条件:
+   * 1. 用户名以 guest_ 开头
+   * 2. 注册时间超过 7 天
+   * 3. totalPlaytimeSeconds = 0 (从未游戏)
+   */
+  async findUselessGuests(): Promise<User[]> {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    return this.usersRepository
+      .createQueryBuilder('user')
+      .where('user.username LIKE :pattern', { pattern: 'guest_%' })
+      .andWhere('user.createdAt < :date', { date: sevenDaysAgo })
+      .andWhere('user.totalPlaytimeSeconds = 0')
+      .getMany();
+  }
+
+  /**
+   * 清理无用游客账户
+   * 返回被删除的用户数量
+   */
+  async cleanupGuests(): Promise<{
+    deletedCount: number;
+    deletedUserIds: string[];
+  }> {
+    this.logger.log('开始清理无用游客账户...');
+    const uselessGuests = await this.findUselessGuests();
+    const userIds = uselessGuests.map((u) => u.id);
+
+    if (userIds.length === 0) {
+      this.logger.log('没有发现需要清理的游客账户');
+      return { deletedCount: 0, deletedUserIds: [] };
+    }
+
+    this.logger.log(`发现 ${userIds.length} 个待清理账户, 开始删除...`);
+
+    // 手动级联删除
+    // 1. 删除用户日志
+    await this.userLogsRepository.delete({ userId: In(userIds) });
+    // 2. 删除游戏进度
+    await this.gameProgressRepository.delete({ userId: In(userIds) });
+    // 3. 删除用户
+    await this.usersRepository.delete(userIds);
+
+    // 4. 清理 Redis 排行榜数据和用户缓存
+    const pipeline = this.redis.pipeline();
+    userIds.forEach((id) => {
+      pipeline.zrem('leaderboard:global', id);
+      pipeline.del(`user:cache:${id}`);
+    });
+    await pipeline.exec();
+
+    this.logger.log(`清理完成, 共删除 ${userIds.length} 个账户`);
+
+    return {
+      deletedCount: userIds.length,
+      deletedUserIds: userIds,
+    };
+  }
+
+  /**
+   * 删除指定用户
+   * @param id 用户ID
+   */
+  async deleteUser(id: string): Promise<void> {
+    this.logger.log(`正在删除用户: ${id}`);
+    // 手动级联删除
+    // 1. 删除用户日志
+    await this.userLogsRepository.delete({ userId: id });
+    // 2. 删除游戏进度
+    await this.gameProgressRepository.delete({ userId: id });
+    // 3. 删除用户
+    await this.usersRepository.delete(id);
+
+    // 4. 清理 Redis
+    await this.redis.zrem('leaderboard:global', id);
+    await this.redis.del(`user:cache:${id}`);
+
+    this.logger.log(`用户 ${id} 删除成功`);
   }
 }

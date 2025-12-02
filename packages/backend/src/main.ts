@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { AdminSeeder } from './admin/admin.seeder';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -7,6 +8,11 @@ async function bootstrap() {
     origin: true,
     credentials: true,
   });
+
+  // 初始化默认管理员
+  const adminSeeder = app.get(AdminSeeder);
+  await adminSeeder.seed();
+
   await app.listen(process.env.PORT ?? 4001);
 }
 bootstrap().catch((err) => {

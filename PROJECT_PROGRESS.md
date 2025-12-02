@@ -174,10 +174,18 @@
   - [x] React + Ant Design 搭建
   - [x] 国际化支持 (中/英)
   - [ ] RBAC 权限管理
-  - [ ] 管理员登录
+  - [x] 管理员登录
+    - [x] JWT 认证与 AdminGuard
+    - [x] 记住密码功能
+    - [x] 退出登录二次确认
 - [x] 用户管理
   - [x] 用户列表 (ID, 用户名, 注册时间)
   - [x] 用户详情 (最高分, 当前关卡)
+  - [x] 用户筛选 (ID/用户名/类型)
+  - [x] 用户删除
+    - [x] 手动级联删除 (修复500错误)
+    - [x] 删除二次确认
+  - [x] 游客清理功能
 - [x] 关卡编辑器
   - [x] 可视化关卡布局编辑 (所见即所得)
   - [x] 方块堆叠拖放
@@ -187,11 +195,38 @@
   - [ ] 关卡测试功能
 - [x] 数据统计
   - [x] 用户行为日志 (User Logs)
+    - [x] 行为类型本地化 (Action Localization)
+    - [x] 实时自动刷新 (Switch + Interval)
   - [x] 游玩时长统计 (Playtime Tracking)
   - [ ] DAU/MAU 统计
   - [ ] 通关率分析
   - [ ] 付费率与 ARPU
   - [ ] 关卡卡点热力图
+
+## 阶段 5：后端性能与代码质量优化（Milestone 3.5）
+
+- [x] 查询效率优化
+  - [x] GameProgressService: 使用 DISTINCT 优化关卡解锁查询
+  - [x] UsersService: 使用 Redis Pipeline 优化用户列表查询 (N+1 问题)
+- [x] 代码质量与规范
+  - [x] 全面引入 NestJS Logger
+  - [x] 修复所有 ESLint 类型错误 (Unsafe return/member access)
+- [x] 缓存策略
+  - [x] 用户信息 Redis 缓存 (TTL 5min)
+  - [x] 用户信息 Redis 缓存 (TTL 5min)
+
+## 阶段 5.5：管理后台视觉打磨（Milestone 3.6）
+
+- [x] 登录界面优化
+  - [x] 农场主题 Banner 背景
+  - [x] Glassmorphism (毛玻璃) 卡片效果
+  - [x] 品牌标识优化 (Sheep Admin)
+- [x] 侧边栏优化
+  - [x] 头部 Logo 与标题
+- [x] 网站图标
+  - [x] 配置 Favicon
+- [x] 构建修复
+  - [x] 修复 Node 16 下 crypto.getRandomValues 兼容性问题
 
 ## 阶段 6：社交功能（Milestone 3）
 
