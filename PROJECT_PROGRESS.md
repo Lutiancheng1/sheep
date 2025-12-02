@@ -172,7 +172,6 @@
 - [x] 管理后台（Milestone 2）
 - [x] 后台基础框架
   - [x] React + Ant Design 搭建
-  - [x] 国际化支持 (中/英)
   - [ ] RBAC 权限管理
   - [x] 管理员登录
     - [x] JWT 认证与 AdminGuard
@@ -225,8 +224,6 @@
   - [x] 头部 Logo 与标题
 - [x] 网站图标
   - [x] 配置 Favicon
-- [x] 构建修复
-  - [x] 修复 Node 16 下 crypto.getRandomValues 兼容性问题
 
 ## 阶段 6：社交功能（Milestone 3）
 
