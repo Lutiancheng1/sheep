@@ -1,9 +1,9 @@
-import type { Metadata } from "next";
-import "./globals.css";
+import type { Metadata } from 'next';
+import './globals.css';
 
 export const metadata: Metadata = {
-  title: "羊了个羊 - 游戏",
-  description: "羊了个羊游戏复刻版",
+  title: '羊了个羊 - 游戏',
+  description: '羊了个羊游戏复刻版',
 };
 
 export default function RootLayout({

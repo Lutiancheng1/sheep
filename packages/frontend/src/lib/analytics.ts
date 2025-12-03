@@ -17,7 +17,7 @@ class AnalyticsService {
 
   startSession() {
     if (this.heartbeatInterval) return;
-    
+
     this.sessionId = Date.now().toString();
     this.logEvent('SESSION_START', { sessionId: this.sessionId });
 
@@ -42,9 +42,9 @@ class AnalyticsService {
     try {
       await api.request('/logs/event', {
         method: 'POST',
-        body: JSON.stringify({ 
-          action: 'HEARTBEAT', 
-          details: { duration: 60, sessionId: this.sessionId } 
+        body: JSON.stringify({
+          action: 'HEARTBEAT',
+          details: { duration: 60, sessionId: this.sessionId },
         }),
       });
     } catch (error) {

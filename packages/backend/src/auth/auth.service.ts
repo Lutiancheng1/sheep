@@ -13,20 +13,10 @@ export class AuthService {
     private userLogsService: UserLogsService,
   ) {}
 
-  async validateUser(
-    username: string,
-    pass: string,
-  ): Promise<Omit<User, 'passwordHash'> | null> {
+  async validateUser(username: string, pass: string): Promise<Omit<User, 'passwordHash'> | null> {
     const user = await this.usersService.findOne(username);
-    console.log(
-      'AuthService.validateUser found user:',
-      user ? user.id : 'null',
-    );
-    if (
-      user &&
-      user.passwordHash &&
-      (await bcrypt.compare(pass, user.passwordHash))
-    ) {
+    console.log('AuthService.validateUser found user:', user ? user.id : 'null');
+    if (user && user.passwordHash && (await bcrypt.compare(pass, user.passwordHash))) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { passwordHash, ...result } = user;
       return result;

@@ -1,4 +1,4 @@
-import dynamic from 'next/dynamic'
+import dynamic from 'next/dynamic';
 
 const PhaserGame = dynamic(() => import('@/components/PhaserGame'), {
   ssr: false,
@@ -7,7 +7,7 @@ const PhaserGame = dynamic(() => import('@/components/PhaserGame'), {
       <p className="text-white text-2xl">加载游戏中...</p>
     </div>
   ),
-})
+});
 
 export default function Home() {
   return (
@@ -16,5 +16,5 @@ export default function Home() {
         <PhaserGame />
       </div>
     </main>
-  )
+  );
 }

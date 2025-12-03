@@ -1,8 +1,8 @@
-import React, {useState, useEffect} from 'react';
-import {Form, Input, Button, Card, message, Checkbox} from 'antd';
-import {UserOutlined, LockOutlined} from '@ant-design/icons';
-import {useNavigate} from 'react-router-dom';
-import {adminLogin} from '../services/api';
+import React, { useState, useEffect } from 'react';
+import { Form, Input, Button, Card, message, Checkbox } from 'antd';
+import { UserOutlined, LockOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
+import { adminLogin } from '../services/api';
 
 const REMEMBER_KEY = 'remember_login';
 const USERNAME_KEY = 'login_username';
@@ -30,7 +30,7 @@ const Login: React.FC = () => {
     }
   }, [form]);
 
-  const onFinish = async (values: {username: string; password: string}) => {
+  const onFinish = async (values: { username: string; password: string }) => {
     setLoading(true);
     try {
       await adminLogin(values.username, values.password);
@@ -95,32 +95,17 @@ const Login: React.FC = () => {
           zIndex: 1,
         }}
       >
-        <Form
-          form={form}
-          name="login"
-          onFinish={onFinish}
-          autoComplete="off"
-          size="large"
-        >
-          <Form.Item
-            name="username"
-            rules={[{required: true, message: '请输入用户名'}]}
-          >
+        <Form form={form} name="login" onFinish={onFinish} autoComplete="off" size="large">
+          <Form.Item name="username" rules={[{ required: true, message: '请输入用户名' }]}>
             <Input prefix={<UserOutlined />} placeholder="用户名" />
           </Form.Item>
 
-          <Form.Item
-            name="password"
-            rules={[{required: true, message: '请输入密码'}]}
-          >
+          <Form.Item name="password" rules={[{ required: true, message: '请输入密码' }]}>
             <Input.Password prefix={<LockOutlined />} placeholder="密码" />
           </Form.Item>
 
           <Form.Item>
-            <Checkbox
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-            >
+            <Checkbox checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)}>
               记住密码
             </Checkbox>
           </Form.Item>
@@ -131,7 +116,7 @@ const Login: React.FC = () => {
             </Button>
           </Form.Item>
 
-          <div style={{textAlign: 'center', color: '#888', fontSize: '12px'}}>
+          <div style={{ textAlign: 'center', color: '#888', fontSize: '12px' }}>
             默认账户: admin / admin123
           </div>
         </Form>

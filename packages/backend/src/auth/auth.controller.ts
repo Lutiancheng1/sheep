@@ -18,10 +18,7 @@ export class AuthController {
 
   @Post('register')
   async register(@Body() registerDto: RegisterDto) {
-    return this.authService.register(
-      registerDto.username,
-      registerDto.password,
-    );
+    return this.authService.register(registerDto.username, registerDto.password);
   }
 
   @Post('guest')
@@ -38,10 +35,6 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Post('bind')
   async bind(@Request() req: UserRequest, @Body() registerDto: RegisterDto) {
-    return this.authService.bind(
-      req.user.id,
-      registerDto.username,
-      registerDto.password,
-    );
+    return this.authService.bind(req.user.id, registerDto.username, registerDto.password);
   }
 }

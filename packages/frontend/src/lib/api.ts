@@ -1,6 +1,7 @@
-const API_BASE_URL = typeof window !== 'undefined'
-  ? `http://${window.location.hostname}:4001`
-  : 'http://localhost:4001';
+const API_BASE_URL =
+  typeof window !== 'undefined'
+    ? `http://${window.location.hostname}:4001`
+    : 'http://localhost:4001';
 
 export const api = {
   token: typeof window !== 'undefined' ? localStorage.getItem('token') : null,
@@ -31,7 +32,10 @@ export const api = {
     } catch (error) {
       console.error('API Request Failed:', error);
       // If unauthorized or bad request (likely invalid user), clear token and reload
-      if (error instanceof Error && (error.message.includes('Unauthorized') || error.message.includes('Bad Request'))) {
+      if (
+        error instanceof Error &&
+        (error.message.includes('Unauthorized') || error.message.includes('Bad Request'))
+      ) {
         localStorage.removeItem('token');
         if (typeof window !== 'undefined') {
           window.location.reload();
@@ -122,8 +126,9 @@ export const api = {
       this.setToken(data.access_token);
     }
     return data;
-  }
+  },
 };
 
 export const getGlobalLeaderboard = (limit?: number) => api.getGlobalLeaderboard(limit);
-export const getLevelLeaderboard = (levelId: string, limit?: number) => api.getLevelLeaderboard(levelId, limit);
+export const getLevelLeaderboard = (levelId: string, limit?: number) =>
+  api.getLevelLeaderboard(levelId, limit);

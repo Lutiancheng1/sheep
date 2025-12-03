@@ -1,14 +1,14 @@
 import React from 'react';
-import {Layout, Menu, theme, Button, Modal} from 'antd';
-import {Outlet, useNavigate, useLocation} from 'react-router-dom';
-import {LogoutOutlined, ExclamationCircleOutlined} from '@ant-design/icons';
-import {logout} from '../services/api';
+import { Layout, Menu, theme, Button, Modal } from 'antd';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { LogoutOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import { logout } from '../services/api';
 
-const {Header, Content, Sider} = Layout;
+const { Header, Content, Sider } = Layout;
 
 const MainLayout: React.FC = () => {
   const {
-    token: {colorBgContainer, borderRadiusLG},
+    token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
   const navigate = useNavigate();
   const location = useLocation();
@@ -45,9 +45,9 @@ const MainLayout: React.FC = () => {
   };
 
   return (
-    <Layout style={{minHeight: '100vh'}}>
-      <Sider 
-        breakpoint="lg" 
+    <Layout style={{ minHeight: '100vh' }}>
+      <Sider
+        breakpoint="lg"
         collapsedWidth="0"
         collapsible
         collapsed={collapsed}
@@ -66,8 +66,10 @@ const MainLayout: React.FC = () => {
           }}
         >
           {!collapsed && (
-            <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '16px', whiteSpace: 'nowrap' }}>
-              羊了个羊 
+            <span
+              style={{ color: '#fff', fontWeight: 'bold', fontSize: '16px', whiteSpace: 'nowrap' }}
+            >
+              羊了个羊
             </span>
           )}
         </div>
@@ -76,7 +78,7 @@ const MainLayout: React.FC = () => {
           mode="inline"
           selectedKeys={[location.pathname]}
           items={items}
-          onClick={({key}) => navigate(key)}
+          onClick={({ key }) => navigate(key)}
         />
       </Sider>
       <Layout>
@@ -89,12 +91,12 @@ const MainLayout: React.FC = () => {
             alignItems: 'center',
           }}
         >
-          <div style={{fontSize: '18px', fontWeight: 'bold'}}>管理后台</div>
+          <div style={{ fontSize: '18px', fontWeight: 'bold' }}>管理后台</div>
           <Button icon={<LogoutOutlined />} onClick={handleLogout}>
             退出登录
           </Button>
         </Header>
-        <Content style={{margin: '24px 16px 0'}}>
+        <Content style={{ margin: '24px 16px 0' }}>
           <div
             style={{
               padding: 24,

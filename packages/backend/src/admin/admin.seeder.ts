@@ -30,8 +30,6 @@ export class AdminSeeder {
     });
 
     await this.adminRepository.save(admin);
-    console.log(
-      '[AdminSeeder] 默认管理员创建成功 - username: admin, password: admin123',
-    );
+    console.log('[AdminSeeder] 默认管理员创建成功 - username: admin, password: admin123');
   }
 }

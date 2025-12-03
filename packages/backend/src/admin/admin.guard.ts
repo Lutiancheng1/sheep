@@ -1,10 +1,7 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import type {
-  JwtPayload,
-  AdminRequest,
-} from '../types/express-request.interface';
+import type { JwtPayload, AdminRequest } from '../types/express-request.interface';
 
 @Injectable()
 export class AdminGuard implements CanActivate {
@@ -28,9 +25,7 @@ export class AdminGuard implements CanActivate {
 
       // 验证是否为管理员角色
       if (payload.role !== 'admin') {
-        console.log(
-          `[AdminGuard] 非管理员尝试访问 - role: ${payload.role || 'undefined'}`,
-        );
+        console.log(`[AdminGuard] 非管理员尝试访问 - role: ${payload.role || 'undefined'}`);
         return false;
       }
 
@@ -38,8 +33,7 @@ export class AdminGuard implements CanActivate {
       request.user = payload as AdminRequest['user'];
       return true;
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('[AdminGuard] Token 验证失败:', errorMessage);
       return false;
     }
@@ -55,10 +49,7 @@ export class AdminGuard implements CanActivate {
 
     // 现在 TypeScript 知道 authHeader 是 string 类型
     const parts: string[] = authHeader.split(' ');
-    const [type, token]: [string | undefined, string | undefined] = [
-      parts[0],
-      parts[1],
-    ];
+    const [type, token]: [string | undefined, string | undefined] = [parts[0], parts[1]];
 
     return type === 'Bearer' && token ? token : undefined;
   }

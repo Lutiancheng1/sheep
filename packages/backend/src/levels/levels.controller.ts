@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, Body } from '@nestjs/common';
+import { Controller, Get, Param, Post, Body, Patch, Query } from '@nestjs/common';
 import { LevelsService } from './levels.service';
 
 import { CreateLevelDto } from './dto/create-level.dto';
@@ -8,8 +8,8 @@ export class LevelsController {
   constructor(private readonly levelsService: LevelsService) {}
 
   @Get()
-  async findAll() {
-    return this.levelsService.findAll();
+  async findAll(@Query('includeAll') includeAll?: string) {
+    return this.levelsService.findAll(includeAll === 'true');
   }
 
   @Get(':id')
@@ -25,5 +25,10 @@ export class LevelsController {
       createLevelDto.data,
       createLevelDto.difficulty,
     );
+  }
+
+  @Patch(':id/toggle-publish')
+  async togglePublish(@Param('id') id: string) {
+    return this.levelsService.togglePublish(id);
   }
 }

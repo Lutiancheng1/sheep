@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Query,
-  UseGuards,
-  Request,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UseGuards, Request } from '@nestjs/common';
 import { UserLogsService } from './user-logs.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../admin/admin.guard';
@@ -42,15 +34,8 @@ export class UserLogsController {
     console.log(
       `[UserLogs] GET /logs 请求 - userId: ${userId || '全部'}, action: ${action || '全部'}, limit: ${limit}`,
     );
-    const result = await this.logsService.getLogs(
-      userId,
-      action,
-      limit,
-      offset,
-    );
-    console.log(
-      `[UserLogs] 返回 ${result.items.length} 条日志记录,总计: ${result.total}`,
-    );
+    const result = await this.logsService.getLogs(userId, action, limit, offset);
+    console.log(`[UserLogs] 返回 ${result.items.length} 条日志记录,总计: ${result.total}`);
     return result;
   }
 }

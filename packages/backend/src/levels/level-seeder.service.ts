@@ -171,9 +171,7 @@ export class LevelSeederService implements OnModuleInit {
             if (tileIndex >= totalTiles) break;
 
             // 中心位置概率更高，边缘更低
-            const dist = Math.sqrt(
-              Math.pow(r - size / 2, 2) + Math.pow(c - size / 2, 2),
-            );
+            const dist = Math.sqrt(Math.pow(r - size / 2, 2) + Math.pow(c - size / 2, 2));
             const prob = 1 - dist / size;
 
             if (Math.random() < prob + 0.2) {
@@ -228,8 +226,7 @@ export class LevelSeederService implements OnModuleInit {
         for (let r = 0; r < h; r++) {
           for (let c = 0; c < w; c++) {
             if (tileIndex >= totalTiles) break;
-            const rowOffset =
-              config.pattern === 'brick' && r % 2 !== 0 ? tileSize / 2 : 0;
+            const rowOffset = config.pattern === 'brick' && r % 2 !== 0 ? tileSize / 2 : 0;
             addTile(
               startX + c * tileSize + rowOffset + structuralOffsetX,
               startY + r * tileSize + structuralOffsetY,
@@ -392,9 +389,7 @@ export class LevelSeederService implements OnModuleInit {
         group = [...available];
         available.length = 0;
 
-        const unassigned = tiles.filter(
-          (t) => !t.type && !group.includes(t.id),
-        );
+        const unassigned = tiles.filter((t) => !t.type && !group.includes(t.id));
         while (group.length < 3 && unassigned.length > 0) {
           // 紧急从“未分配”中选取 (可能会破坏严格的可解性，但防止崩溃)
           // 理想情况下应该回溯，但对于这个游戏，“稍微作弊”是可以接受的
@@ -438,9 +433,7 @@ export class LevelSeederService implements OnModuleInit {
     // 最终检查
     const unassignedCount = tiles.filter((t) => !t.type).length;
     if (unassignedCount > 0) {
-      console.error(
-        `Finished assignment with ${unassignedCount} unassigned tiles!`,
-      );
+      console.error(`Finished assignment with ${unassignedCount} unassigned tiles!`);
       // 紧急填充
       tiles
         .filter((t) => !t.type)

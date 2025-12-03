@@ -13,11 +13,7 @@ export class UserLogsService {
     private userRepository: Repository<User>,
   ) {}
 
-  async logAction(
-    userId: string,
-    action: string,
-    details?: Record<string, any>,
-  ) {
+  async logAction(userId: string, action: string, details?: Record<string, any>) {
     console.log('UserLogsService.logAction called for:', userId, action);
     const log = this.logsRepository.create({
       userId,
@@ -53,10 +49,6 @@ export class UserLogsService {
 
     // 2. Update User total playtime
     // We use increment to be safe with concurrent requests
-    await this.userRepository.increment(
-      { id: userId },
-      'totalPlaytimeSeconds',
-      durationSeconds,
-    );
+    await this.userRepository.increment({ id: userId }, 'totalPlaytimeSeconds', durationSeconds);
   }
 }

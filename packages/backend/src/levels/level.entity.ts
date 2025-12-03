@@ -1,9 +1,4 @@
-import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
-  CreateDateColumn,
-} from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn } from 'typeorm';
 
 @Entity()
 export class Level {
@@ -18,6 +13,9 @@ export class Level {
 
   @Column({ default: 1 })
   difficulty: number;
+
+  @Column({ default: 'draft' })
+  status: string; // 'draft' | 'published'
 
   @CreateDateColumn()
   createdAt: Date;

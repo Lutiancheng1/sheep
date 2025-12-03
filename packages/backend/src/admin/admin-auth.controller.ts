@@ -14,10 +14,7 @@ export class AdminAuthController {
   async login(@Body() loginDto: AdminLoginDto) {
     console.log(`[AdminAuth] 登录尝试 - username: ${loginDto.username}`);
 
-    const admin = await this.adminService.validateAdmin(
-      loginDto.username,
-      loginDto.password,
-    );
+    const admin = await this.adminService.validateAdmin(loginDto.username, loginDto.password);
 
     const payload = {
       sub: admin.id,

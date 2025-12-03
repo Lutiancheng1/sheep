@@ -14,19 +14,14 @@ export class LeaderboardService {
 
   async updateScores(userId: string, levelId: string, score: number) {
     // 1. Get current best score for this level
-    const currentScoreStr = await this.redis.zscore(
-      `leaderboard:level:${levelId}`,
-      userId,
-    );
+    const currentScoreStr = await this.redis.zscore(`leaderboard:level:${levelId}`, userId);
     const currentScore = currentScoreStr ? parseFloat(currentScoreStr) : 0;
 
     // 2. If new score is higher, update both level and global leaderboards
     if (score > currentScore) {
       const delta = score - currentScore;
 
-      this.logger.log(
-        `更新用户 ${userId} 分数: 关卡 ${levelId} 新增 ${delta} (总分 ${score})`,
-      );
+      this.logger.log(`更新用户 ${userId} 分数: 关卡 ${levelId} 新增 ${delta} (总分 ${score})`);
 
       // Update level leaderboard with new best score
       await this.redis.zadd(`leaderboard:level:${levelId}`, score, userId);
@@ -39,12 +34,7 @@ export class LeaderboardService {
 
   async getGlobalLeaderboard(limit: number = 10) {
     // Get top N users: ZREVRANGE 0 limit-1 WITHSCORES
-    const result = await this.redis.zrevrange(
-      'leaderboard:global',
-      0,
-      limit - 1,
-      'WITHSCORES',
-    );
+    const result = await this.redis.zrevrange('leaderboard:global', 0, limit - 1, 'WITHSCORES');
     return this.mapLeaderboardData(result);
   }
 

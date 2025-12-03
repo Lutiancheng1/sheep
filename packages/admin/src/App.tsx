@@ -1,7 +1,7 @@
 import React from 'react';
-import {ConfigProvider} from 'antd';
+import { ConfigProvider } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
-import {BrowserRouter, Routes, Route, Navigate} from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import LevelList from './pages/LevelList';
 import LevelEditor from './pages/LevelEditor';

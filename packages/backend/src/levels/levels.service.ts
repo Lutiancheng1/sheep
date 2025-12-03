@@ -10,19 +10,17 @@ export class LevelsService {
     private levelsRepository: Repository<Level>,
   ) {}
 
-  async findAll(): Promise<Level[]> {
-    return this.levelsRepository.find({ order: { levelId: 'ASC' } });
+  async findAll(includeAll = false): Promise<Level[]> {
+    // 前端只看到已发布的关卡，管理后台可以看到所有关卡
+    const where = includeAll ? {} : { status: 'published' };
+    return this.levelsRepository.find({ where, order: { levelId: 'ASC' } });
   }
 
   async findOne(levelId: string): Promise<Level | null> {
     return this.levelsRepository.findOne({ where: { levelId } });
   }
 
-  async create(
-    levelId: string,
-    data: Record<string, any>,
-    difficulty: number,
-  ): Promise<Level> {
+  async create(levelId: string, data: Record<string, any>, difficulty: number): Promise<Level> {
     try {
       let existing = await this.levelsRepository.findOne({
         where: { levelId },
@@ -64,5 +62,14 @@ export class LevelsService {
       console.error('Error creating/updating level:', error);
       throw error;
     }
+  }
+
+  async togglePublish(levelId: string): Promise<Level> {
+    const level = await this.levelsRepository.findOne({ where: { levelId } });
+    if (!level) {
+      throw new Error('Level not found');
+    }
+    level.status = level.status === 'published' ? 'draft' : 'published';
+    return await this.levelsRepository.save(level);
   }
 }

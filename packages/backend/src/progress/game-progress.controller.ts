@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Get,
-  UseGuards,
-  Request,
-} from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Request } from '@nestjs/common';
 import { GameProgressService } from './game-progress.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { SubmitProgressDto } from './dto/submit-progress.dto';
@@ -17,10 +10,7 @@ export class GameProgressController {
 
   @UseGuards(JwtAuthGuard)
   @Post('submit')
-  async submitProgress(
-    @Request() req: UserRequest,
-    @Body() submitProgressDto: SubmitProgressDto,
-  ) {
+  async submitProgress(@Request() req: UserRequest, @Body() submitProgressDto: SubmitProgressDto) {
     return this.progressService.create(
       req.user.id,
       submitProgressDto.levelId,

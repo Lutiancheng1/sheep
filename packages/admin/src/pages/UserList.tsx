@@ -1,7 +1,7 @@
-import React, {useEffect, useState} from 'react';
-import {Table, Card, Tag, message, Button, Modal, Space, Descriptions, Popconfirm} from 'antd';
-import {DeleteOutlined, ExclamationCircleOutlined} from '@ant-design/icons';
-import {getUsers, getCleanupPreview, executeCleanup, deleteUser} from '../services/api';
+import React, { useEffect, useState } from 'react';
+import { Table, Card, Tag, message, Button, Modal, Space, Descriptions, Popconfirm } from 'antd';
+import { DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import { getUsers, getCleanupPreview, executeCleanup, deleteUser } from '../services/api';
 
 interface User {
   id: string;
@@ -73,7 +73,9 @@ const UserList: React.FC = () => {
         setCleaningup(true);
         try {
           const result = await executeCleanup();
-          message.success(`成功清理 ${result.deletedCount} 个无用游客账户,释放空间: ${result.freedSpace}`);
+          message.success(
+            `成功清理 ${result.deletedCount} 个无用游客账户,释放空间: ${result.freedSpace}`,
+          );
           setCleanupModalVisible(false);
           setCleanupPreview(null);
           // 刷新列表
@@ -106,7 +108,7 @@ const UserList: React.FC = () => {
       dataIndex: 'id',
       key: 'id',
       width: 300,
-      render: (text: string) => <span style={{fontFamily: 'monospace'}}>{text}</span>,
+      render: (text: string) => <span style={{ fontFamily: 'monospace' }}>{text}</span>,
     },
     {
       title: '用户名',
@@ -118,9 +120,7 @@ const UserList: React.FC = () => {
       dataIndex: 'isGuest',
       key: 'isGuest',
       render: (isGuest: boolean) => (
-        <Tag color={isGuest ? 'orange' : 'green'}>
-          {isGuest ? '游客' : '注册用户'}
-        </Tag>
+        <Tag color={isGuest ? 'orange' : 'green'}>{isGuest ? '游客' : '注册用户'}</Tag>
       ),
     },
     {
@@ -152,7 +152,8 @@ const UserList: React.FC = () => {
       dataIndex: 'createdAt',
       key: 'createdAt',
       render: (date: string) => new Date(date).toLocaleString(),
-      sorter: (a: User, b: User) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      sorter: (a: User, b: User) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     },
     {
       title: '操作',
@@ -181,7 +182,7 @@ const UserList: React.FC = () => {
         title="用户管理"
         extra={
           <Space>
-            <span style={{color: '#999'}}>总数: {users.length}</span>
+            <span style={{ color: '#999' }}>总数: {users.length}</span>
             <Button
               type="primary"
               danger
@@ -203,7 +204,7 @@ const UserList: React.FC = () => {
             showSizeChanger: true,
             showTotal: (total) => `共 ${total} 条`,
           }}
-          scroll={{x: 800}}
+          scroll={{ x: 800 }}
         />
       </Card>
 
@@ -231,9 +232,9 @@ const UserList: React.FC = () => {
       >
         {cleanupPreview && (
           <div>
-            <Descriptions column={1} bordered style={{marginBottom: 16}}>
+            <Descriptions column={1} bordered style={{ marginBottom: 16 }}>
               <Descriptions.Item label="将被清理的账户数量">
-                <strong style={{fontSize: '16px', color: '#ff4d4f'}}>
+                <strong style={{ fontSize: '16px', color: '#ff4d4f' }}>
                   {cleanupPreview.count} 个
                 </strong>
               </Descriptions.Item>
@@ -243,13 +244,13 @@ const UserList: React.FC = () => {
             </Descriptions>
 
             {cleanupPreview.count === 0 ? (
-              <div style={{textAlign: 'center', padding: '40px 0', color: '#999'}}>
+              <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>
                 暂无符合清理条件的游客账户
               </div>
             ) : (
               <>
-                <div style={{marginBottom: 12}}>
-                  <ExclamationCircleOutlined style={{color: '#faad14', marginRight: 8}} />
+                <div style={{ marginBottom: 12 }}>
+                  <ExclamationCircleOutlined style={{ color: '#faad14', marginRight: 8 }} />
                   <strong>清理条件:</strong> 注册超过7天、从未游戏(游玩时长为0)的游客账户
                 </div>
 
@@ -262,11 +263,13 @@ const UserList: React.FC = () => {
                     marginBottom: 16,
                   }}
                 >
-                  <ExclamationCircleOutlined style={{color: '#ff4d4f', marginRight: 8}} />
-                  <strong>重要提示:</strong> 此操作将永久删除这些账户及其所有关联数据,包括游戏进度和日志,<strong>无法恢复</strong>!
+                  <ExclamationCircleOutlined style={{ color: '#ff4d4f', marginRight: 8 }} />
+                  <strong>重要提示:</strong>{' '}
+                  此操作将永久删除这些账户及其所有关联数据,包括游戏进度和日志,
+                  <strong>无法恢复</strong>!
                 </div>
 
-                <div style={{maxHeight: '300px', overflow: 'auto'}}>
+                <div style={{ maxHeight: '300px', overflow: 'auto' }}>
                   <Table
                     dataSource={cleanupPreview.users}
                     columns={[

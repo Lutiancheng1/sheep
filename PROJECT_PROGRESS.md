@@ -200,8 +200,13 @@
   - [x] 方块堆叠拖放
   - [x] 关卡参数设置
   - [x] 大画布支持与辅助线
+  - [x] 手机预览框 (iPhone SE 375x667)
+  - [x] 双层网格系统 (40px + 80px)
+  - [x] 图层方块数量统计
+  - [x] 暗色主题画布
+  - [x] 发布/下架功能
   - [ ] 导入/导出 JSON
-  - [ ] 关卡测试功能
+  - [ ] 实时预览面板 (Phaser 集成)
 - [x] 数据统计
   - [x] 用户行为日志 (User Logs)
     - [x] 行为类型本地化 (Action Localization)
@@ -236,6 +241,36 @@
   - [x] 头部 Logo 与标题
   - [x] 网站图标
   - [x] 配置 Favicon
+
+## 阶段 5.6：关卡编辑器优化与代码规范统一（Milestone 3.7）
+
+- [x] 关卡发布系统（后端）
+  - [x] Level Entity 添加 status 字段 (draft/published)
+  - [x] LevelsService 实现发布状态过滤
+  - [x] API 端点：PATCH /levels/:id/toggle-publish
+  - [x] API 端点：GET /levels?includeAll=true (管理后台专用)
+- [x] 关卡编辑器 UI 重构
+  - [x] 手机预览框 (iPhone SE 375x667)
+  - [x] 双层网格系统 (40px 主网格 + 80px 辅助网格)
+  - [x] 暗色主题画布 (#1a1a1a)
+  - [x] 图层方块数量统计
+  - [x] 发布/下架按钮集成
+  - [x] 左侧面板状态 Tag 显示
+- [x] 关卡列表优化
+  - [x] 添加状态列 (已发布/草稿)
+  - [x] 发布/下架操作按钮
+  - [x] 管理后台查看所有关卡 (includeAll=true)
+- [x] 代码规范统一
+  - [x] 配置业界标准 Prettier 规则
+  - [x] 统一后端、前端、管理后台代码风格
+  - [x] 修复 ESLint 与 Prettier 冲突
+  - [x] 批量格式化所有代码文件
+- [ ] 实时预览功能 (Phase 3 - 可选)
+  - [ ] 创建 PhaserPreview 组件
+  - [ ] 创建 PreviewScene.ts (基于 GameScene)
+  - [ ] 左右分栏布局 (60% 编辑 / 40% 预览)
+  - [ ] EventBus 实时同步 tiles 数据
+  - [ ] 支持点击测试三消逻辑
 
 ## 阶段 6：社交功能（Milestone 3）
 

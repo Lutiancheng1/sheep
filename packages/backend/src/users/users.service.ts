@@ -25,11 +25,7 @@ export class UsersService {
     return this.usersRepository.findOne({ where: { username } });
   }
 
-  async create(
-    username: string,
-    passwordHash?: string,
-    isGuest: boolean = false,
-  ): Promise<User> {
+  async create(username: string, passwordHash?: string, isGuest: boolean = false): Promise<User> {
     this.logger.log(`创建新用户 - username: ${username}, isGuest: ${isGuest}`);
     const user = this.usersRepository.create({
       username,
@@ -39,9 +35,7 @@ export class UsersService {
       dailyItemUsage: { remove: 0, undo: 0, shuffle: 0 },
       lastItemResetDate: new Date(),
     });
-    this.logger.log(
-      `创建的user对象 dailyItemUsage: ${JSON.stringify(user.dailyItemUsage)}`,
-    );
+    this.logger.log(`创建的user对象 dailyItemUsage: ${JSON.stringify(user.dailyItemUsage)}`);
     const savedUser = await this.usersRepository.save(user);
     this.logger.log(
       `用户创建成功 - id: ${savedUser.id}, dailyItemUsage: ${JSON.stringify(savedUser.dailyItemUsage)}`,
@@ -122,10 +116,7 @@ export class UsersService {
       // 4. 组装数据
       return users.map((user, index) => {
         const scoreResult = scores ? scores[index] : [null, null];
-        const score =
-          scoreResult && scoreResult[1]
-            ? parseFloat(scoreResult[1] as string)
-            : 0;
+        const score = scoreResult && scoreResult[1] ? parseFloat(scoreResult[1] as string) : 0;
 
         return {
           ...user,
@@ -203,9 +194,7 @@ export class UsersService {
         });
       });
       await levelPipeline.exec();
-      this.logger.log(
-        `已从 ${levelKeys.length} 个关卡排行榜中移除 ${userIds.length} 个游客`,
-      );
+      this.logger.log(`已从 ${levelKeys.length} 个关卡排行榜中移除 ${userIds.length} 个游客`);
     }
 
     this.logger.log(`清理完成, 共删除 ${userIds.length} 个账户`);

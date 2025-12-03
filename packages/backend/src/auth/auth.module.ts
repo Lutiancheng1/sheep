@@ -19,8 +19,7 @@ import { LocalStrategy } from './local.strategy';
         secret: configService.get<string>('jwt.secret'),
         signOptions: {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          expiresIn: (configService.get<string>('jwt.expiresIn') ||
-            '7d') as any,
+          expiresIn: (configService.get<string>('jwt.expiresIn') || '7d') as any,
         },
       }),
       inject: [ConfigService],

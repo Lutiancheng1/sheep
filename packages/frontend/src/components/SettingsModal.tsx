@@ -12,7 +12,9 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [currentUser, setCurrentUser] = useState<{ username: string; isGuest: boolean } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ username: string; isGuest: boolean } | null>(
+    null,
+  );
 
   useEffect(() => {
     if (isOpen) {
@@ -23,7 +25,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           const payload = JSON.parse(atob(token.split('.')[1]));
           setCurrentUser({
             username: payload.username,
-            isGuest: payload.username.startsWith('guest_')
+            isGuest: payload.username.startsWith('guest_'),
           });
         } catch (e) {
           console.error('Failed to decode token', e);
@@ -66,7 +68,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       style={{
         position: 'absolute',
         top: 0,
@@ -77,7 +79,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        zIndex: 2000
+        zIndex: 2000,
       }}
       onClick={(e) => {
         // 点击背景遮罩时关闭模态框
@@ -88,14 +90,14 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       onPointerDown={(e) => e.stopPropagation()}
       onPointerUp={(e) => e.stopPropagation()}
     >
-      <div 
+      <div
         style={{
           width: '90%',
           maxWidth: '400px',
           backgroundColor: '#fff',
           borderRadius: '20px',
           padding: '20px',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
+          boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
         }}
         onClick={(e) => {
           // 阻止点击事件向上冒泡到背景层
@@ -104,7 +106,12 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
           <h2 style={{ margin: 0, fontSize: '24px', color: '#333' }}>设置</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer' }}>×</button>
+          <button
+            onClick={onClose}
+            style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer' }}
+          >
+            ×
+          </button>
         </div>
 
         <div style={{ display: 'flex', marginBottom: '20px', borderBottom: '1px solid #eee' }}>
@@ -117,7 +124,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               border: 'none',
               borderBottom: activeTab === 'profile' ? '2px solid #2E8B57' : 'none',
               color: activeTab === 'profile' ? '#2E8B57' : '#666',
-              fontWeight: 'bold'
+              fontWeight: 'bold',
             }}
           >
             个人信息
@@ -132,7 +139,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 border: 'none',
                 borderBottom: activeTab === 'bind' ? '2px solid #2E8B57' : 'none',
                 color: activeTab === 'bind' ? '#2E8B57' : '#666',
-                fontWeight: 'bold'
+                fontWeight: 'bold',
               }}
             >
               绑定账户
@@ -147,7 +154,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               border: 'none',
               borderBottom: activeTab === 'switch' ? '2px solid #2E8B57' : 'none',
               color: activeTab === 'switch' ? '#2E8B57' : '#666',
-              fontWeight: 'bold'
+              fontWeight: 'bold',
             }}
           >
             切换账户
@@ -172,29 +179,29 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               type="text"
               placeholder="用户名"
               value={username}
-              onChange={e => setUsername(e.target.value)}
+              onChange={(e) => setUsername(e.target.value)}
               style={{
                 padding: '12px',
                 borderRadius: '8px',
                 border: '1px solid #ddd',
-                fontSize: '16px'
+                fontSize: '16px',
               }}
             />
             <input
               type="password"
               placeholder="密码"
               value={password}
-              onChange={e => setPassword(e.target.value)}
+              onChange={(e) => setPassword(e.target.value)}
               style={{
                 padding: '12px',
                 borderRadius: '8px',
                 border: '1px solid #ddd',
-                fontSize: '16px'
+                fontSize: '16px',
               }}
             />
             {error && <div style={{ color: 'red', fontSize: '14px' }}>{error}</div>}
             {success && <div style={{ color: 'green', fontSize: '14px' }}>{success}</div>}
-            
+
             <button
               onClick={activeTab === 'bind' ? handleBind : handleLogin}
               style={{
@@ -206,7 +213,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 fontSize: '16px',
                 fontWeight: 'bold',
                 cursor: 'pointer',
-                marginTop: '10px'
+                marginTop: '10px',
               }}
             >
               {activeTab === 'bind' ? '确认绑定' : '登录'}

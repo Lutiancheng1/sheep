@@ -2,10 +2,7 @@
 
 import * as crypto from 'crypto';
 
-if (
-  typeof (globalThis as typeof globalThis & { crypto?: any }).crypto ===
-  'undefined'
-) {
+if (typeof (globalThis as typeof globalThis & { crypto?: any }).crypto === 'undefined') {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
   (globalThis as any).crypto = (crypto as any).webcrypto || crypto;
 }
@@ -68,4 +65,4 @@ import { AdminModule } from './admin/admin.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }
