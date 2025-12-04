@@ -166,3 +166,21 @@ export const deleteUser = async (id: string) => {
   const response = await api.delete(`/users/${id}`);
   return response.data;
 };
+
+// 批量发布/下架关卡
+export const batchPublish = async (levelIds: string[], status: 'published' | 'draft') => {
+  const response = await api.patch('/levels/batch/publish', { levelIds, status });
+  return response.data;
+};
+
+// 删除关卡
+export const deleteLevel = async (levelId: string) => {
+  const response = await api.delete(`/levels/${levelId}`);
+  return response.data;
+};
+
+// 批量删除关卡
+export const batchDeleteLevels = async (levelIds: string[]) => {
+  const response = await api.delete('/levels/batch/delete', { data: { levelIds } });
+  return response.data;
+};

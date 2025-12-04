@@ -42,7 +42,7 @@ export class LevelSeederService implements OnModuleInit {
       const types = this.getTileTypesForLevel();
       const levelData = this.generateLevelData(config, types);
 
-      await this.levelsService.create(levelId, levelData, i);
+      await this.levelsService.create(levelId, levelData, i, 'published');
     }
   }
 

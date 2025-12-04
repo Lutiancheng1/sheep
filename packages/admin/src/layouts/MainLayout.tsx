@@ -3,6 +3,7 @@ import { Layout, Menu, theme, Button, Modal } from 'antd';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { LogoutOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { logout } from '../services/api';
+import Breadcrumb from '../components/Breadcrumb';
 
 const { Header, Content, Sider } = Layout;
 
@@ -97,6 +98,7 @@ const MainLayout: React.FC = () => {
           </Button>
         </Header>
         <Content style={{ margin: '24px 16px 0' }}>
+          <Breadcrumb />
           <div
             style={{
               padding: 24,

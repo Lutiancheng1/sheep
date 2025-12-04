@@ -20,7 +20,12 @@ export class LevelsService {
     return this.levelsRepository.findOne({ where: { levelId } });
   }
 
-  async create(levelId: string, data: Record<string, any>, difficulty: number): Promise<Level> {
+  async create(
+    levelId: string,
+    data: Record<string, any>,
+    difficulty: number,
+    status: 'draft' | 'published' = 'draft',
+  ): Promise<Level> {
     try {
       let existing = await this.levelsRepository.findOne({
         where: { levelId },
@@ -32,6 +37,7 @@ export class LevelsService {
             levelId,
             data,
             difficulty,
+            status,
           });
           return await this.levelsRepository.save(level);
         } catch (err: unknown) {
@@ -71,5 +77,39 @@ export class LevelsService {
     }
     level.status = level.status === 'published' ? 'draft' : 'published';
     return await this.levelsRepository.save(level);
+  }
+
+  // 批量更新状态
+  async batchUpdateStatus(
+    levelIds: string[],
+    status: 'published' | 'draft',
+  ): Promise<{ success: boolean; updated: number }> {
+    const levels = await this.levelsRepository.find({
+      where: levelIds.map((levelId) => ({ levelId })),
+    });
+    levels.forEach((level) => {
+      level.status = status;
+    });
+    await this.levelsRepository.save(levels);
+    return { success: true, updated: levels.length };
+  }
+
+  // 删除关卡
+  async delete(levelId: string): Promise<{ success: boolean }> {
+    const level = await this.findOne(levelId);
+    if (!level) {
+      throw new Error('Level not found');
+    }
+    await this.levelsRepository.remove(level);
+    return { success: true };
+  }
+
+  // 批量删除
+  async batchDelete(levelIds: string[]): Promise<{ success: boolean; deleted: number }> {
+    const levels = await this.levelsRepository.find({
+      where: levelIds.map((levelId) => ({ levelId })),
+    });
+    await this.levelsRepository.remove(levels);
+    return { success: true, deleted: levels.length };
   }
 }

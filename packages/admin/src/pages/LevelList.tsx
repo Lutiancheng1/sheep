@@ -1,11 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Space, Card, Tag, message } from 'antd';
+import { Table, Button, Space, Card, Tag, message, Modal } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { getLevels, Level, togglePublish } from '../services/api';
+import { ExclamationCircleOutlined } from '@ant-design/icons';
+import {
+  getLevels,
+  Level,
+  togglePublish,
+  batchPublish,
+  deleteLevel,
+  batchDeleteLevels,
+} from '../services/api';
 
 const LevelList: React.FC = () => {
   const [levels, setLevels] = useState<Level[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -34,10 +43,74 @@ const LevelList: React.FC = () => {
     try {
       await togglePublish(levelId);
       message.success('发布状态已更新');
-      fetchLevels(); // 重新加载列表
+      fetchLevels();
     } catch (error) {
       message.error('操作失败');
     }
+  };
+
+  const handleBatchPublish = async (status: 'published' | 'draft') => {
+    if (selectedRowKeys.length === 0) {
+      message.warning('请先选择关卡');
+      return;
+    }
+
+    try {
+      await batchPublish(selectedRowKeys as string[], status);
+      message.success(
+        `已${status === 'published' ? '发布' : '下架'} ${selectedRowKeys.length} 个关卡`,
+      );
+      setSelectedRowKeys([]);
+      fetchLevels();
+    } catch (error) {
+      message.error('批量操作失败');
+    }
+  };
+
+  const handleDelete = async (levelId: string) => {
+    Modal.confirm({
+      title: '确认删除',
+      icon: <ExclamationCircleOutlined />,
+      content: `确定要删除关卡 ${levelId} 吗?此操作不可撤销!`,
+      okText: '确认删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          await deleteLevel(levelId);
+          message.success('删除成功');
+          fetchLevels();
+        } catch (error) {
+          message.error('删除失败');
+        }
+      },
+    });
+  };
+
+  const handleBatchDelete = () => {
+    if (selectedRowKeys.length === 0) {
+      message.warning('请先选择关卡');
+      return;
+    }
+
+    Modal.confirm({
+      title: '确认批量删除',
+      icon: <ExclamationCircleOutlined />,
+      content: `确定要删除选中的 ${selectedRowKeys.length} 个关卡吗?此操作不可撤销!`,
+      okText: '确认删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          await batchDeleteLevels(selectedRowKeys as string[]);
+          message.success(`已删除 ${selectedRowKeys.length} 个关卡`);
+          setSelectedRowKeys([]);
+          fetchLevels();
+        } catch (error) {
+          message.error('批量删除失败');
+        }
+      },
+    });
   };
 
   const columns = [
@@ -91,10 +164,20 @@ const LevelList: React.FC = () => {
           <Button size="small" onClick={() => handleTogglePublish(record.levelId)}>
             {record.status === 'published' ? '下架' : '发布'}
           </Button>
+          <Button danger size="small" onClick={() => handleDelete(record.levelId)}>
+            删除
+          </Button>
         </Space>
       ),
     },
   ];
+
+  const rowSelection = {
+    selectedRowKeys,
+    onChange: (newSelectedRowKeys: React.Key[]) => {
+      setSelectedRowKeys(newSelectedRowKeys);
+    },
+  };
 
   return (
     <Card
@@ -105,10 +188,22 @@ const LevelList: React.FC = () => {
         </Button>
       }
     >
+      {selectedRowKeys.length > 0 && (
+        <Space style={{ marginBottom: 16 }}>
+          <Button onClick={() => handleBatchPublish('published')}>批量发布</Button>
+          <Button onClick={() => handleBatchPublish('draft')}>批量下架</Button>
+          <Button danger onClick={handleBatchDelete}>
+            批量删除
+          </Button>
+          <span style={{ marginLeft: 8 }}>已选择 {selectedRowKeys.length} 项</span>
+        </Space>
+      )}
+
       <Table
+        rowSelection={rowSelection}
         columns={columns}
         dataSource={levels}
-        rowKey="id"
+        rowKey="levelId"
         loading={loading}
         pagination={{ pageSize: 10 }}
       />

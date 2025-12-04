@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, Body, Patch, Query } from '@nestjs/common';
+import { Controller, Get, Param, Post, Body, Patch, Query, Delete } from '@nestjs/common';
 import { LevelsService } from './levels.service';
 
 import { CreateLevelDto } from './dto/create-level.dto';
@@ -30,5 +30,23 @@ export class LevelsController {
   @Patch(':id/toggle-publish')
   async togglePublish(@Param('id') id: string) {
     return this.levelsService.togglePublish(id);
+  }
+
+  // 批量发布/下架
+  @Patch('batch/publish')
+  async batchPublish(@Body() dto: { levelIds: string[]; status: 'published' | 'draft' }) {
+    return this.levelsService.batchUpdateStatus(dto.levelIds, dto.status);
+  }
+
+  // 删除关卡
+  @Delete(':id')
+  async delete(@Param('id') id: string) {
+    return this.levelsService.delete(id);
+  }
+
+  // 批量删除
+  @Delete('batch/delete')
+  async batchDelete(@Body() dto: { levelIds: string[] }) {
+    return this.levelsService.batchDelete(dto.levelIds);
   }
 }
