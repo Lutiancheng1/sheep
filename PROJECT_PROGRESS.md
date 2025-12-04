@@ -260,17 +260,32 @@
   - [x] 添加状态列 (已发布/草稿)
   - [x] 发布/下架操作按钮
   - [x] 管理后台查看所有关卡 (includeAll=true)
+- [x] 管理后台功能增强 (2024-12-04)
+  - [x] 关卡默认发布状态
+    - [x] 修改 LevelsService.create() 支持 status 参数
+    - [x] Seeder 生成关卡默认为 published 状态
+  - [x] 批量操作与删除功能
+    - [x] 新增批量发布/下架/删除 API
+    - [x] LevelList 支持多选和批量操作工具栏
+    - [x] 添加删除确认弹窗（二次确认）
+  - [x] 面包屑导航
+    - [x] 创建 Breadcrumb 组件支持动态路由
+    - [x] 集成到 MainLayout
+    - [x] 修复被侧边栏遮挡问题
+  - [x] Phaser 实时预览编辑器
+    - [x] 创建 PhaserPreview 组件
+    - [x] 创建 PreviewScene.ts (简化版 GameScene)
+    - [x] 左右分栏布局 (40% 控制 / 60% 预览)
+    - [x] EventBus 实时同步 tiles 数据
+    - [x] 修复数据同步时序问题（使用 ref 避免闭包陷阱）
+    - [x] 修复面包屑被侧边栏遮挡
+    - [ ] 完善点击测试三消逻辑（待优化）
 - [x] 代码规范统一
   - [x] 配置业界标准 Prettier 规则
   - [x] 统一后端、前端、管理后台代码风格
   - [x] 修复 ESLint 与 Prettier 冲突
   - [x] 批量格式化所有代码文件
-- [ ] 实时预览功能 (Phase 3 - 可选)
-  - [ ] 创建 PhaserPreview 组件
-  - [ ] 创建 PreviewScene.ts (基于 GameScene)
-  - [ ] 左右分栏布局 (60% 编辑 / 40% 预览)
-  - [ ] EventBus 实时同步 tiles 数据
-  - [ ] 支持点击测试三消逻辑
+
 
 ## 阶段 6：社交功能（Milestone 3）
 
