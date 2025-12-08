@@ -68,6 +68,8 @@ export interface Level {
   id: string;
   levelId: string;
   difficulty: number;
+  sortOrder?: number; // 关卡排序字段
+  displayOrder?: number; // 兼容字段
   status?: string; // 'draft' | 'published'
   data: {
     tiles: any[];
@@ -182,5 +184,14 @@ export const deleteLevel = async (levelId: string) => {
 // 批量删除关卡
 export const batchDeleteLevels = async (levelIds: string[]) => {
   const response = await api.delete('/levels/batch/delete', { data: { levelIds } });
+  return response.data;
+};
+
+// 更新关卡
+export const updateLevel = async (
+  levelId: string,
+  updates: Partial<Omit<Level, 'id' | 'levelId'>>,
+) => {
+  const response = await api.patch(`/levels/${levelId}`, updates);
   return response.data;
 };

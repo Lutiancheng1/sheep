@@ -27,6 +27,15 @@ export class LevelsController {
     );
   }
 
+  // 更新关卡(支持更新sortOrder等字段)
+  @Patch(':id')
+  async update(
+    @Param('id') id: string,
+    @Body() updates: Partial<CreateLevelDto & { sortOrder: number }>,
+  ) {
+    return await this.levelsService.updateLevel(id, updates);
+  }
+
   @Patch(':id/toggle-publish')
   async togglePublish(@Param('id') id: string) {
     return this.levelsService.togglePublish(id);

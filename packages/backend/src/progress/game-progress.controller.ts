@@ -24,4 +24,10 @@ export class GameProgressController {
   async getHistory(@Request() req: UserRequest) {
     return this.progressService.findByUser(req.user.id);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('unlocked-levels')
+  async getUnlockedLevels(@Request() req: UserRequest) {
+    return this.progressService.getUnlockedLevels(req.user.id);
+  }
 }

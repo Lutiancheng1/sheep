@@ -87,6 +87,10 @@ export const api = {
     return this.request('/progress/history');
   },
 
+  async getUnlockedLevels() {
+    return this.request('/progress/unlocked-levels');
+  },
+
   async getGlobalLeaderboard(limit = 10) {
     return this.request(`/leaderboard/global?limit=${limit}`);
   },

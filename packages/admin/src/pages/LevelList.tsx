@@ -1,7 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Space, Card, Tag, message, Modal } from 'antd';
+import { Table, Button, Space, Card, Tag, message, Modal, Typography } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { ExclamationCircleOutlined } from '@ant-design/icons';
+import { ExclamationCircleOutlined, HolderOutlined } from '@ant-design/icons';
+import {
+  DndContext,
+  closestCenter,
+  DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import {
   getLevels,
   Level,
@@ -9,7 +24,10 @@ import {
   batchPublish,
   deleteLevel,
   batchDeleteLevels,
+  updateLevel,
 } from '../services/api';
+
+const { Text } = Typography;
 
 const LevelList: React.FC = () => {
   const [levels, setLevels] = useState<Level[]>([]);
@@ -24,9 +42,16 @@ const LevelList: React.FC = () => {
   const fetchLevels = async () => {
     setLoading(true);
     try {
-      const data = await getLevels(true); // 管理后台查看所有关卡（包括草稿）
-      // 如果可能，按 levelId 数字排序
+      const data = await getLevels(true); // 管理后台查看所有关卡(包括草稿)
+      // 按sortOrder排序,如果sortOrder不存在则按levelId数字排序
       const sorted = data.sort((a, b) => {
+        const sortA = typeof a.sortOrder === 'number' ? a.sortOrder : 9999;
+        const sortB = typeof b.sortOrder === 'number' ? b.sortOrder : 9999;
+
+        if (sortA !== sortB) {
+          return sortA - sortB;
+        }
+
         const numA = parseInt(a.levelId.replace('level-', '')) || 0;
         const numB = parseInt(b.levelId.replace('level-', '')) || 0;
         return numA - numB;
@@ -113,7 +138,73 @@ const LevelList: React.FC = () => {
     });
   };
 
+  // 拖拽传感器配置
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+  );
+
+  // 拖拽结束处理
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    const oldIndex = levels.findIndex((l) => l.levelId === active.id);
+    const newIndex = levels.findIndex((l) => l.levelId === over.id);
+
+    const newLevels = arrayMove(levels, oldIndex, newIndex);
+    setLevels(newLevels);
+
+    try {
+      await Promise.all(
+        newLevels.map((level, index) => updateLevel(level.levelId, { sortOrder: index + 1 })),
+      );
+      message.success('排序已保存');
+    } catch (error) {
+      message.error('保存排序失败');
+      fetchLevels();
+    }
+  };
+
+  // 可拖拽行组件
+  interface DraggableRowProps extends React.HTMLAttributes<HTMLTableRowElement> {
+    'data-row-key': string;
+  }
+
+  const DraggableRow: React.FC<DraggableRowProps> = ({ children, ...props }) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+      id: props['data-row-key'],
+    });
+
+    const style: React.CSSProperties = {
+      ...props.style,
+      transform: CSS.Transform.toString(transform),
+      transition,
+      cursor: 'move',
+      ...(isDragging ? { position: 'relative', zIndex: 9999 } : {}),
+    };
+
+    return (
+      <tr {...props} ref={setNodeRef} style={style} {...attributes} {...listeners}>
+        {children}
+      </tr>
+    );
+  };
+
   const columns = [
+    {
+      title: '拖动排序',
+      key: 'drag',
+      width: 100,
+      align: 'center' as const,
+      render: () => <HolderOutlined style={{ cursor: 'move', fontSize: 16, color: '#999' }} />,
+    },
     {
       title: '关卡 ID',
       dataIndex: 'levelId',
@@ -183,9 +274,9 @@ const LevelList: React.FC = () => {
     <Card
       title="关卡管理"
       extra={
-        <Button type="primary" onClick={() => navigate('/levels/new')}>
-          新建关卡
-        </Button>
+          <Button type="primary" onClick={() => navigate('/levels/new')}>
+            新建关卡
+          </Button>
       }
     >
       {selectedRowKeys.length > 0 && (
@@ -199,14 +290,26 @@ const LevelList: React.FC = () => {
         </Space>
       )}
 
-      <Table
-        rowSelection={rowSelection}
-        columns={columns}
-        dataSource={levels}
-        rowKey="levelId"
-        loading={loading}
-        pagination={{ pageSize: 10 }}
-      />
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext
+          items={levels.map((l) => l.levelId)}
+          strategy={verticalListSortingStrategy}
+        >
+          <Table
+            rowSelection={rowSelection}
+            columns={columns}
+            dataSource={levels}
+            rowKey="levelId"
+            loading={loading}
+            pagination={{ pageSize: 10 }}
+            components={{
+              body: {
+                row: DraggableRow,
+              },
+            }}
+          />
+        </SortableContext>
+      </DndContext>
     </Card>
   );
 };

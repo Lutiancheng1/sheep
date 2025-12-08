@@ -49,6 +49,7 @@ export default class StartScene extends Phaser.Scene {
         fontSize: '40px',
         color: '#ffffff',
         fontStyle: 'bold',
+        padding: { top: 10, bottom: 10, left: 0, right: 0 },
       })
       .setOrigin(0.5);
 
@@ -101,6 +102,7 @@ export default class StartScene extends Phaser.Scene {
         fontSize: '32px',
         color: '#ffffff',
         fontStyle: 'bold',
+        padding: { top: 10, bottom: 10, left: 10, right: 10 },
       })
       .setOrigin(0.5);
 
@@ -122,8 +124,9 @@ export default class StartScene extends Phaser.Scene {
 
     // 设置按钮 (右上角)
     const settingsBtn = this.add
-      .text(680, 50, '⚙️', {
+      .text(680, 75, '⚙️', {
         fontSize: '48px',
+        padding: { top: 10, bottom: 10, left: 10, right: 10 },
       })
       .setOrigin(0.5);
     settingsBtn.setInteractive({ useHandCursor: true });

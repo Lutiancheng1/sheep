@@ -23,6 +23,7 @@ export default class GameScene extends Phaser.Scene {
   private maxSlots = 7;
   private slotY = 1100;
   private scoreText?: Phaser.GameObjects.Text;
+  private infoText?: Phaser.GameObjects.Text; // 关卡信息文本(日期+关卡号)
   private score = 0;
   private tileSize = 80;
   private itemCounts = { remove: 0, undo: 0, shuffle: 0 };
@@ -63,13 +64,60 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private currentLevelId: string = 'level-1';
+  private currentLevelNumber: number = 1; // 当前关卡在排序后的序号
 
   init(data: { levelId: string }) {
     this.currentLevelId = data.levelId || 'level-1';
+
+    // 异步获取所有关卡并计算当前关卡序号
+    api
+      .getLevels()
+      .then((response) => {
+        const levels = Array.isArray(response) ? response : [];
+
+        // 按sortOrder排序
+        levels.sort((a: any, b: any) => {
+          const sortA = typeof a.sortOrder === 'number' ? a.sortOrder : 9999;
+          const sortB = typeof b.sortOrder === 'number' ? b.sortOrder : 9999;
+          if (sortA !== sortB) return sortA - sortB;
+          const idA = parseInt(a.levelId.split('-')[1] || '0');
+          const idB = parseInt(b.levelId.split('-')[1] || '0');
+          return idA - idB;
+        });
+
+        // 找到当前关卡的位置
+        const currentIndex = levels.findIndex((l: any) => l.levelId === this.currentLevelId);
+        this.currentLevelNumber = currentIndex !== -1 ? currentIndex + 1 : 1;
+
+        // 更新显示(如果infoText已经创建)
+        if (this.infoText) {
+          const dateStr = new Date().toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' });
+          this.infoText.setText(`${dateStr}  第${this.currentLevelNumber}关`);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch levels for number display:', err);
+        this.currentLevelNumber = 1; // 失败时默认为1
+      });
+
     this.events.on('shutdown', () => {
       Analytics.endSession();
+      window.removeEventListener('DISABLE_INPUT', this.disableInput);
+      window.removeEventListener('ENABLE_INPUT', this.enableInput);
     });
+
+    // 监听输入控制事件
+    window.addEventListener('DISABLE_INPUT', this.disableInput);
+    window.addEventListener('ENABLE_INPUT', this.enableInput);
   }
+
+  private disableInput = () => {
+    this.input.enabled = false;
+  };
+
+  private enableInput = () => {
+    this.input.enabled = true;
+  };
 
   private isPaused = false;
 
@@ -189,14 +237,16 @@ export default class GameScene extends Phaser.Scene {
 
   createTopUI() {
     // 设置按钮 (左上角)
-    const settingsBtn = this.add.container(60, 80);
+    const settingsBtn = this.add.container(60, 100);
     const settingsBg = this.add.graphics();
     settingsBg.fillStyle(0x0099ff, 1); // 蓝色背景
     settingsBg.fillRoundedRect(-30, -30, 60, 60, 10);
     settingsBg.lineStyle(4, 0x000000, 1);
     settingsBg.strokeRoundedRect(-30, -30, 60, 60, 10);
 
-    const gear = this.add.text(0, 0, '⚙️', { fontSize: '32px' }).setOrigin(0.5);
+    const gear = this.add
+      .text(0, 0, '⚙️', { fontSize: '32px', padding: { top: 8, bottom: 8, left: 8, right: 8 } })
+      .setOrigin(0.5);
     settingsBtn.add([settingsBg, gear]);
 
     // Fix: Use config object for setInteractive
@@ -207,23 +257,22 @@ export default class GameScene extends Phaser.Scene {
     });
     settingsBtn.on('pointerup', () => this.pauseGame());
 
-    const infoContainer = this.add.container(375, 80);
+    const infoContainer = this.add.container(375, 100);
     const infoBg = this.add.graphics();
     infoBg.fillStyle(0x000000, 1);
     // Widen the background to fit date + level
     infoBg.fillRoundedRect(-140, -25, 280, 50, 25);
 
     const dateStr = new Date().toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' });
-    const levelNum = this.currentLevelId.split('-')[1] || '1';
-    const infoText = this.add
-      .text(0, 0, `${dateStr}  第${levelNum}关`, {
+    this.infoText = this.add
+      .text(0, 0, `${dateStr}  第${this.currentLevelNumber}关`, {
         fontSize: '24px',
         color: '#FFFFFF',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
 
-    infoContainer.add([infoBg, infoText]);
+    infoContainer.add([infoBg, this.infoText]);
 
     // 分数 (右上角) - 简化显示
     this.scoreText = this.add
@@ -1005,8 +1054,31 @@ export default class GameScene extends Phaser.Scene {
   async victory() {
     let nextLevelId = '';
     try {
-      const currentId = parseInt(this.currentLevelId.split('-')[1]);
-      nextLevelId = `level-${currentId + 1}`;
+      // 获取所有已发布的关卡并按sortOrder排序
+      const allLevels = await api.getLevels();
+
+      // 按sortOrder排序(与LevelSelectScene一致)
+      allLevels.sort((a: any, b: any) => {
+        const sortA = typeof a.sortOrder === 'number' ? a.sortOrder : 9999;
+        const sortB = typeof b.sortOrder === 'number' ? b.sortOrder : 9999;
+
+        if (sortA !== sortB) {
+          return sortA - sortB;
+        }
+
+        const idA = parseInt(a.levelId.split('-')[1] || '0');
+        const idB = parseInt(b.levelId.split('-')[1] || '0');
+        return idA - idB;
+      });
+
+      // 找到当前关卡在排序后列表中的位置
+      const currentIndex = allLevels.findIndex((l: any) => l.levelId === this.currentLevelId);
+
+      // 如果找到了且不是最后一关,则解锁下一关
+      if (currentIndex !== -1 && currentIndex < allLevels.length - 1) {
+        nextLevelId = allLevels[currentIndex + 1].levelId;
+      }
+
       // Submit progress to backend
       await api.submitProgress(this.currentLevelId, 'completed', this.score);
       Analytics.logEvent('LEVEL_COMPLETE', { levelId: this.currentLevelId, score: this.score });
@@ -1014,16 +1086,7 @@ export default class GameScene extends Phaser.Scene {
       // Show success modal
       console.log('Progress saved to API');
 
-      const unlockedLevelsStr = localStorage.getItem('unlockedLevels');
-      let unlockedLevels = ['level-1'];
-      if (unlockedLevelsStr) {
-        unlockedLevels = JSON.parse(unlockedLevelsStr);
-      }
-
-      if (!unlockedLevels.includes(nextLevelId)) {
-        unlockedLevels.push(nextLevelId);
-        localStorage.setItem('unlockedLevels', JSON.stringify(unlockedLevels));
-      }
+      // 解锁逻辑已移到LevelSelectScene,通过API自动计算
     } catch (e) {
       console.error('Failed to save progress', e);
     }

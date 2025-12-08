@@ -18,6 +18,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   useEffect(() => {
     if (isOpen) {
+      window.dispatchEvent(new Event('DISABLE_INPUT'));
       // Decode token to get user info (simple decoding for display)
       const token = api.token;
       if (token) {
@@ -36,12 +37,30 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       setSuccess('');
       setUsername('');
       setPassword('');
+    } else {
+      window.dispatchEvent(new Event('ENABLE_INPUT'));
     }
+    return () => {
+      window.dispatchEvent(new Event('ENABLE_INPUT'));
+    };
   }, [isOpen]);
 
   const handleBind = async () => {
     try {
       setError('');
+      setSuccess('');
+
+      // 前端验证
+      if (!username || username.trim().length === 0) {
+        setError('请输入用户名');
+        return;
+      }
+
+      if (!password || password.length < 6) {
+        setError('密码长度至少6位');
+        return;
+      }
+
       await api.bindAccount(username, password);
       setSuccess('账户绑定成功！');
       setTimeout(() => {
@@ -55,6 +74,19 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const handleLogin = async () => {
     try {
       setError('');
+      setSuccess('');
+
+      // 前端验证
+      if (!username || username.trim().length === 0) {
+        setError('请输入用户名');
+        return;
+      }
+
+      if (!password || password.length < 6) {
+        setError('密码长度至少6位');
+        return;
+      }
+
       await api.login(username, password);
       setSuccess('登录成功！');
       setTimeout(() => {
@@ -62,6 +94,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       }, 1000);
     } catch (err: any) {
       setError('登录失败: ' + (err.message || '用户名或密码错误'));
+      // 不再刷新页面
     }
   };
 
@@ -89,6 +122,10 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       }}
       onPointerDown={(e) => e.stopPropagation()}
       onPointerUp={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onMouseUp={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
+      onTouchEnd={(e) => e.stopPropagation()}
     >
       <div
         style={{
@@ -203,6 +240,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             {success && <div style={{ color: 'green', fontSize: '14px' }}>{success}</div>}
 
             <button
+              type="button"
               onClick={activeTab === 'bind' ? handleBind : handleLogin}
               style={{
                 padding: '12px',

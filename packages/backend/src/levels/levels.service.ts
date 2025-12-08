@@ -11,9 +11,13 @@ export class LevelsService {
   ) {}
 
   async findAll(includeAll = false): Promise<Level[]> {
-    // 前端只看到已发布的关卡，管理后台可以看到所有关卡
+    // 前端只看到已发布的关卡,管理后台可以看到所有关卡
     const where = includeAll ? {} : { status: 'published' };
-    return this.levelsRepository.find({ where, order: { levelId: 'ASC' } });
+    // 按sortOrder优先排序,如果sortOrder相同则按levelId排序
+    return this.levelsRepository.find({
+      where,
+      order: { sortOrder: 'ASC', levelId: 'ASC' },
+    });
   }
 
   async findOne(levelId: string): Promise<Level | null> {
@@ -68,6 +72,21 @@ export class LevelsService {
       console.error('Error creating/updating level:', error);
       throw error;
     }
+  }
+
+  async updateLevel(
+    levelId: string,
+    updates: Partial<{ data: any; difficulty: number; sortOrder: number; status: string }>,
+  ): Promise<Level> {
+    const level = await this.levelsRepository.findOne({ where: { levelId } });
+    if (!level) {
+      throw new Error('Level not found');
+    }
+
+    // 更新字段
+    Object.assign(level, updates);
+
+    return await this.levelsRepository.save(level);
   }
 
   async togglePublish(levelId: string): Promise<Level> {

@@ -22,14 +22,16 @@ export default class LevelSelectScene extends Phaser.Scene {
         fontSize: '48px',
         color: '#2E8B57',
         fontStyle: 'bold',
+        padding: { top: 10, bottom: 10, left: 0, right: 0 },
       })
       .setOrigin(0.5)
       .setDepth(1);
 
     // 返回按钮 (左上角)
     const backBtn = this.add
-      .text(70, 80, '🏠', {
+      .text(70, 100, '🏠', {
         fontSize: '40px',
+        padding: { top: 10, bottom: 10, left: 10, right: 10 },
       })
       .setOrigin(0.5)
       .setDepth(1)
@@ -41,8 +43,9 @@ export default class LevelSelectScene extends Phaser.Scene {
 
     // 排行榜按钮 (右上角)
     const rankBtn = this.add
-      .text(680, 80, '🏆', {
+      .text(680, 100, '🏆', {
         fontSize: '40px',
+        padding: { top: 10, bottom: 10, left: 10, right: 10 },
       })
       .setOrigin(0.5)
       .setDepth(1)
@@ -52,70 +55,26 @@ export default class LevelSelectScene extends Phaser.Scene {
       window.dispatchEvent(new CustomEvent('OPEN_LEADERBOARD'));
     });
 
-    // 开发者工具: 一键解锁所有关卡 (测试用)
-    // 默认隐藏，仅当检测到 F12/开发者工具时显示
-    const devBtn = this.add
-      .text(580, 80, '🔓', {
-        fontSize: '40px',
-      })
-      .setOrigin(0.5)
-      .setDepth(1)
-      .setInteractive({ useHandCursor: true })
-      .setVisible(false);
-
-    devBtn.on('pointerdown', () => {
-      const allLevels = Array.from({ length: 20 }, (_, i) => `level-${i + 1}`);
-      localStorage.setItem('unlockedLevels', JSON.stringify(allLevels));
-      // Show feedback
-      const toast = this.add
-        .text(375, 200, '已解锁所有关卡!', {
-          fontSize: '32px',
-          color: '#00ff00',
-          backgroundColor: '#000000',
-          padding: { x: 10, y: 5 },
-        })
-        .setOrigin(0.5)
-        .setDepth(10);
-
-      this.time.delayedCall(1000, () => {
-        this.scene.restart();
-      });
-    });
-
-    // DevTools Detection Logic
-    this.time.addEvent({
-      delay: 1000,
-      loop: true,
-      callback: () => {
-        // Check for docked DevTools (Window size difference)
-        const threshold = 160;
-        const widthDiff = window.outerWidth - window.innerWidth > threshold;
-        const heightDiff = window.outerHeight - window.innerHeight > threshold;
-
-        if (widthDiff || heightDiff) {
-          devBtn.setVisible(true);
-        } else {
-          devBtn.setVisible(false);
-        }
-      },
-    });
-
-    // Also listen for F12 key (Optimistic)
-    this.input.keyboard?.on('keydown-F12', () => {
-      devBtn.setVisible(true);
-    });
-
     // 关卡列表容器
     const listContainer = this.add.container(0, 0);
 
     // 获取关卡列表
-    api
-      .getLevels()
-      .then((response) => {
+    (async () => {
+      try {
+        const response = await api.getLevels();
         const levels = Array.isArray(response) ? response : [];
 
-        // 按关卡ID数字排序
+        // 按sortOrder排序,如果sortOrder不存在则按levelId数字排序(向后兼容)
         levels.sort((a: any, b: any) => {
+          // 优先使用sortOrder
+          const sortA = typeof a.sortOrder === 'number' ? a.sortOrder : 9999;
+          const sortB = typeof b.sortOrder === 'number' ? b.sortOrder : 9999;
+
+          if (sortA !== sortB) {
+            return sortA - sortB;
+          }
+
+          // sortOrder相同时,按levelId数字排序
           const idA = parseInt(a.levelId.split('-')[1] || '0');
           const idB = parseInt(b.levelId.split('-')[1] || '0');
           return idA - idB;
@@ -127,15 +86,29 @@ export default class LevelSelectScene extends Phaser.Scene {
         const gapY = 140;
         const startX = 375 - gapX; // Center is 375. Left is 375-220=155. Right is 375+220=595.
 
-        // 读取解锁关卡
-        let unlockedLevels = ['level-1'];
-        try {
-          const stored = localStorage.getItem('unlockedLevels');
-          if (stored) {
-            unlockedLevels = JSON.parse(stored);
+        // 从API获取已完成关卡并计算解锁列表
+        const completedLevels = await api.getUnlockedLevels();
+
+        // 根据已完成关卡计算解锁列表
+        let unlockedLevels: string[];
+        if (levels.length === 0) {
+          unlockedLevels = [];
+        } else if (completedLevels.length === 0) {
+          // 新用户,只解锁第一关
+          unlockedLevels = [levels[0].levelId];
+        } else {
+          // 找到已完成关卡中在排序列表中的最大索引
+          const completedIndices = completedLevels
+            .map((levelId: string) => levels.findIndex((l: any) => l.levelId === levelId))
+            .filter((idx: number) => idx !== -1);
+
+          if (completedIndices.length === 0) {
+            unlockedLevels = [levels[0].levelId];
+          } else {
+            const maxCompletedIndex = Math.max(...completedIndices);
+            const unlockedCount = Math.min(maxCompletedIndex + 2, levels.length);
+            unlockedLevels = levels.slice(0, unlockedCount).map((l: any) => l.levelId);
           }
-        } catch (e) {
-          console.error('Failed to load progress', e);
         }
 
         levels.forEach((level: any, index: number) => {
@@ -247,13 +220,13 @@ export default class LevelSelectScene extends Phaser.Scene {
             }
           }
         });
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error('Failed to fetch levels', err);
         this.add
           .text(375, 400, '加载关卡失败', { color: '#ff0000', fontSize: '32px' })
           .setOrigin(0.5);
-      });
+      }
+    })();
   }
 
   createLevelButton(

@@ -22,7 +22,13 @@ const Leaderboard = ({ isOpen, onClose, levelId }: LeaderboardProps) => {
   useEffect(() => {
     if (isOpen) {
       fetchLeaderboard();
+      window.dispatchEvent(new Event('DISABLE_INPUT'));
+    } else {
+      window.dispatchEvent(new Event('ENABLE_INPUT'));
     }
+    return () => {
+      window.dispatchEvent(new Event('ENABLE_INPUT'));
+    };
   }, [isOpen, activeTab, levelId]);
 
   // Auto-switch to level tab if levelId is provided when opening
@@ -58,6 +64,10 @@ const Leaderboard = ({ isOpen, onClose, levelId }: LeaderboardProps) => {
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm"
       onPointerDown={(e) => e.stopPropagation()}
       onPointerUp={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onMouseUp={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
+      onTouchEnd={(e) => e.stopPropagation()}
     >
       <div className="bg-[#f0f9f0] w-full max-w-md rounded-3xl border-4 border-[#2d5a27] shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
         {/* Header */}

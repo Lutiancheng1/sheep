@@ -14,6 +14,9 @@ export class Level {
   @Column({ default: 1 })
   difficulty: number;
 
+  @Column({ default: 0, nullable: true })
+  sortOrder: number; // 关卡排序字段,数字越小越靠前
+
   @Column({ default: 'draft' })
   status: string; // 'draft' | 'published'
 

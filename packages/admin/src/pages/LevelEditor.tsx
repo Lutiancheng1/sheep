@@ -1,5 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Button, Input, Form, Slider, Row, Col, message, Radio, Space, Tag } from 'antd';
+import {
+  Card,
+  Button,
+  Input,
+  Form,
+  Row,
+  Col,
+  message,
+  Radio,
+  Space,
+  Tag,
+  Switch,
+  InputNumber,
+} from 'antd';
 import { useParams, useNavigate } from 'react-router-dom';
 import { createLevel, getLevel, togglePublish } from '../services/api';
 import PhaserPreview from '../components/PhaserPreview';
@@ -37,6 +50,7 @@ const LevelEditor: React.FC = () => {
   const [tiles, setTiles] = useState<Tile[]>([]);
   const [currentLayer, setCurrentLayer] = useState(1);
   const [selectedType, setSelectedType] = useState('carrot');
+  const [showOnlyCurrentLayer, setShowOnlyCurrentLayer] = useState(false);
   const [status, setStatus] = useState<string>('draft');
 
   useEffect(() => {
@@ -45,7 +59,7 @@ const LevelEditor: React.FC = () => {
     } else {
       form.setFieldsValue({
         levelId: 'level-new',
-        difficulty: 1,
+        displayOrder: 1,
       });
     }
   }, [id]);
@@ -55,7 +69,7 @@ const LevelEditor: React.FC = () => {
       const level = await getLevel(levelId);
       form.setFieldsValue({
         levelId: level.levelId,
-        difficulty: level.difficulty,
+        displayOrder: level.displayOrder || level.difficulty || 1,
       });
       setTiles(level.data.tiles || []);
       setStatus(level.status || 'draft');
@@ -69,7 +83,8 @@ const LevelEditor: React.FC = () => {
       const values = await form.validateFields();
       const levelData = {
         levelId: values.levelId,
-        difficulty: values.difficulty,
+        displayOrder: values.displayOrder,
+        difficulty: values.displayOrder, // 兼容旧字段
         status: status,
         data: {
           tiles: tiles,
@@ -105,6 +120,11 @@ const LevelEditor: React.FC = () => {
     return acc;
   }, {});
 
+  // 动态生成图层列表
+  const usedLayers = [...new Set(tiles.map((t) => t.layer))].sort((a, b) => a - b);
+  const maxLayer = usedLayers.length > 0 ? Math.max(...usedLayers) : 0;
+  const availableLayers = usedLayers.length > 0 ? [...usedLayers, maxLayer + 1] : [1, 2, 3];
+
   return (
     <Row gutter={24} style={{ height: 'calc(100vh - 150px)' }}>
       {/* 左侧控制面板 - 40% */}
@@ -114,8 +134,13 @@ const LevelEditor: React.FC = () => {
             <Form.Item name="levelId" label="关卡 ID" rules={[{ required: true }]}>
               <Input disabled={!!id && id !== 'new'} />
             </Form.Item>
-            <Form.Item name="difficulty" label="难度">
-              <Slider min={1} max={20} />
+            <Form.Item
+              name="displayOrder"
+              label="关卡序号"
+              tooltip="用于控制关卡在列表中的显示顺序"
+              rules={[{ required: true }]}
+            >
+              <InputNumber min={1} max={999} placeholder="输入关卡序号" style={{ width: '100%' }} />
             </Form.Item>
           </Form>
 
@@ -133,13 +158,25 @@ const LevelEditor: React.FC = () => {
               buttonStyle="solid"
             >
               <Space wrap>
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((l) => (
+                {availableLayers.map((l) => (
                   <Radio.Button key={l} value={l}>
-                    {l} {layerStats[l] ? `(${layerStats[l]})` : ''}
+                    图层 {l} {layerStats[l] ? `(${layerStats[l]}个)` : ''}
                   </Radio.Button>
                 ))}
               </Space>
             </Radio.Group>
+
+            <div style={{ marginTop: 12 }}>
+              <Switch
+                checked={showOnlyCurrentLayer}
+                onChange={setShowOnlyCurrentLayer}
+                checkedChildren="仅显示当前层"
+                unCheckedChildren="显示所有层"
+              />
+              <span style={{ marginLeft: 12, fontSize: 12, color: '#666' }}>
+                {showOnlyCurrentLayer ? '其他图层已隐藏' : '非选中图层半透明显示'}
+              </span>
+            </div>
           </div>
 
           <div style={{ marginTop: 20 }}>
@@ -173,12 +210,13 @@ const LevelEditor: React.FC = () => {
           </div>
 
           <div style={{ marginTop: 20 }}>
-            <h4>点击操作说明</h4>
+            <h4>操作说明</h4>
             <p style={{ fontSize: 12, color: '#666' }}>
-              • 在右侧预览中点击方块可移入槽位
+              • <strong>左键点击</strong>预览空白处添加方块
+              <br />• <strong>右键点击</strong>已有方块将其删除
               <br />
-              • 实时查看三消效果
-              <br />• 当前图层: {currentLayer} | 方块总数: {tiles.length}
+              • 方块将添加到当前选中的图层
+              <br />• 当前图层: {currentLayer} | 总方块数: {tiles.length}
             </p>
           </div>
 
@@ -199,7 +237,7 @@ const LevelEditor: React.FC = () => {
       {/* 右侧 Phaser 预览 - 60% */}
       <Col span={14} style={{ height: '100%' }}>
         <Card
-          title="实时预览 (可点击方块测试三消)"
+          title={`实时预览 (当前图层: ${currentLayer})`}
           bodyStyle={{
             padding: 20,
             height: 'calc(100% - 57px)',
@@ -209,7 +247,13 @@ const LevelEditor: React.FC = () => {
           }}
           style={{ height: '100%' }}
         >
-          <PhaserPreview tiles={tiles} onTilesChange={setTiles} />
+          <PhaserPreview
+            tiles={tiles}
+            currentLayer={currentLayer}
+            selectedType={selectedType}
+            showOnlyCurrentLayer={showOnlyCurrentLayer}
+            onTilesChange={setTiles}
+          />
         </Card>
       </Col>
     </Row>
