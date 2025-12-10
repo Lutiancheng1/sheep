@@ -2,7 +2,7 @@ import { IsString, IsNumber, IsIn } from 'class-validator';
 
 export class SubmitProgressDto {
   @IsString()
-  levelId!: string;
+  levelUuid!: string;
 
   @IsString()
   @IsIn(['completed', 'failed'])

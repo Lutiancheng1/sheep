@@ -12,19 +12,19 @@ export class LeaderboardService {
     private readonly usersService: UsersService,
   ) {}
 
-  async updateScores(userId: string, levelId: string, score: number) {
+  async updateScores(userId: string, levelUuid: string, score: number) {
     // 1. Get current best score for this level
-    const currentScoreStr = await this.redis.zscore(`leaderboard:level:${levelId}`, userId);
+    const currentScoreStr = await this.redis.zscore(`leaderboard:level:${levelUuid}`, userId);
     const currentScore = currentScoreStr ? parseFloat(currentScoreStr) : 0;
 
     // 2. If new score is higher, update both level and global leaderboards
     if (score > currentScore) {
       const delta = score - currentScore;
 
-      this.logger.log(`更新用户 ${userId} 分数: 关卡 ${levelId} 新增 ${delta} (总分 ${score})`);
+      this.logger.log(`更新用户 ${userId} 分数: 关卡 ${levelUuid} 新增 ${delta} (总分 ${score})`);
 
       // Update level leaderboard with new best score
-      await this.redis.zadd(`leaderboard:level:${levelId}`, score, userId);
+      await this.redis.zadd(`leaderboard:level:${levelUuid}`, score, userId);
 
       // Update global leaderboard by adding the difference (delta)
       // This ensures Total Score = Sum of Best Scores for each level
@@ -38,9 +38,9 @@ export class LeaderboardService {
     return this.mapLeaderboardData(result);
   }
 
-  async getLevelLeaderboard(levelId: string, limit: number = 10) {
+  async getLevelLeaderboard(levelUuid: string, limit: number = 10) {
     const result = await this.redis.zrevrange(
-      `leaderboard:level:${levelId}`,
+      `leaderboard:level:${levelUuid}`,
       0,
       limit - 1,
       'WITHSCORES',

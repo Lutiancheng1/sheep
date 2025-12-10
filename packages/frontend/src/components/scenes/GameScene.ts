@@ -559,9 +559,12 @@ export default class GameScene extends Phaser.Scene {
       targets: tile.sprite,
       x: slotX,
       y: this.slotY,
+      scale: 0.9, // 恢复到槽位的缩放
       duration: 300,
       ease: 'Back.easeOut',
       onComplete: () => {
+        // ✅ 修复：移除暂存区的点击事件监听器
+        tile.sprite?.off('pointerdown');
         this.checkMatch();
       },
     });
@@ -907,8 +910,8 @@ export default class GameScene extends Phaser.Scene {
     });
 
     container.on('pointerover', () => {
-      // 防止悬浮高亮槽位中的方块
-      if (this.slots.includes(tileData)) return;
+      // 防止悬浮高亮槽位中的方块和暂存区方块
+      if (this.slots.includes(tileData) || this.holdingTiles.includes(tileData)) return;
 
       if (tileData.isClickable && !this.isPaused) {
         container.setScale(1.05);
@@ -916,7 +919,14 @@ export default class GameScene extends Phaser.Scene {
     });
 
     container.on('pointerout', () => {
-      container.setScale(1);
+      // 根据方块状态恢复正确的缩放
+      if (this.slots.includes(tileData) || this.holdingTiles.includes(tileData)) {
+        // 槽位和暂存区方块保持 0.9
+        container.setScale(0.9);
+      } else {
+        // 场上方块恢复 1.0
+        container.setScale(1);
+      }
     });
 
     tileData.sprite = container;
@@ -995,6 +1005,13 @@ export default class GameScene extends Phaser.Scene {
     if (!tileData || !tileData.sprite) return;
 
     if (!tileData.isClickable) {
+      // ✅ 修复：先停止该方块上所有正在进行的tween，避免双击冲突
+      this.tweens.killTweensOf(tileData.sprite);
+
+      // ✅ 修复：强制重置到正确位置，避免被kill的tween留下偏移
+      tileData.sprite.x = tileData.position.x;
+      tileData.sprite.y = tileData.position.y;
+
       this.tweens.add({
         targets: tileData.sprite,
         x: tileData.position.x - 5,

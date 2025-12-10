@@ -134,5 +134,5 @@ export const api = {
 };
 
 export const getGlobalLeaderboard = (limit?: number) => api.getGlobalLeaderboard(limit);
-export const getLevelLeaderboard = (levelId: string, limit?: number) =>
-  api.getLevelLeaderboard(levelId, limit);
+export const getLevelLeaderboard = (levelUuid: string, limit?: number) =>
+  api.getLevelLeaderboard(levelUuid, limit);

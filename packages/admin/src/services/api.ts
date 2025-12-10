@@ -102,8 +102,8 @@ export const createLevel = async (levelData: {
   return response.data;
 };
 
-export const togglePublish = async (levelId: string) => {
-  const response = await api.patch(`/levels/${levelId}/toggle-publish`);
+export const togglePublish = async (levelUuid: string) => {
+  const response = await api.patch(`/levels/${levelUuid}/toggle-publish`);
   return response.data;
 };
 
@@ -174,8 +174,8 @@ export const batchPublish = async (ids: string[], status: 'published' | 'draft')
 };
 
 // 删除关卡
-export const deleteLevel = async (levelId: string) => {
-  const response = await api.delete(`/levels/${levelId}`);
+export const deleteLevel = async (levelUuid: string) => {
+  const response = await api.delete(`/levels/${levelUuid}`);
   return response.data;
 };
 
@@ -187,9 +187,9 @@ export const batchDeleteLevels = async (ids: string[]) => {
 
 // 更新关卡
 export const updateLevel = async (
-  levelId: string,
-  updates: Partial<Omit<Level, 'id' | 'levelId'>>,
+  levelUuid: string,
+  updates: Partial<Omit<Level, 'id' | 'levelUuid'>>,
 ) => {
-  const response = await api.patch(`/levels/${levelId}`, updates);
+  const response = await api.patch(`/levels/${levelUuid}`, updates);
   return response.data;
 };

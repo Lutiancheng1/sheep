@@ -13,7 +13,7 @@ export class GameProgressController {
   async submitProgress(@Request() req: UserRequest, @Body() submitProgressDto: SubmitProgressDto) {
     return this.progressService.create(
       req.user.id,
-      submitProgressDto.levelId,
+      submitProgressDto.levelUuid,
       submitProgressDto.status,
       submitProgressDto.score,
     );

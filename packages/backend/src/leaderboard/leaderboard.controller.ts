@@ -10,8 +10,8 @@ export class LeaderboardController {
     return this.leaderboardService.getGlobalLeaderboard(limit ? Number(limit) : 10);
   }
 
-  @Get('level/:id')
-  async getLevelLeaderboard(@Param('id') id: string, @Query('limit') limit: number) {
-    return this.leaderboardService.getLevelLeaderboard(id, limit ? Number(limit) : 10);
+  @Get('level/:levelUuid')
+  async getLevelLeaderboard(@Param('levelUuid') levelUuid: string, @Query('limit') limit: number) {
+    return this.leaderboardService.getLevelLeaderboard(levelUuid, limit ? Number(limit) : 10);
   }
 }

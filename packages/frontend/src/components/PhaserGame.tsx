@@ -15,13 +15,13 @@ export default function PhaserGame() {
 
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [leaderboardLevelId, setLeaderboardLevelId] = useState<string | undefined>(undefined);
+  const [leaderboardLevelUuid, setLeaderboardLevelUuid] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const handleOpenLeaderboard = (e: Event) => {
-      const customEvent = e as CustomEvent<{ levelId?: string }>;
-      setLeaderboardLevelId(customEvent.detail?.levelId);
+      const customEvent = e as CustomEvent<{ levelUuid?: string }>;
+      setLeaderboardLevelUuid(customEvent.detail?.levelUuid);
       setShowLeaderboard(true);
     };
 
@@ -140,7 +140,7 @@ export default function PhaserGame() {
       <Leaderboard
         isOpen={showLeaderboard}
         onClose={() => setShowLeaderboard(false)}
-        levelUuid={leaderboardLevelId}
+        levelUuid={leaderboardLevelUuid}
       />
 
       <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />

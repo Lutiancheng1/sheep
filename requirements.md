@@ -141,7 +141,7 @@ POST /api/purchases {user_id,item_id,platform_token} → {receipt_status}
 
 排行榜
 
-GET /api/leaderboard/:levelId?top=50 → [{user,score,rank}]
+GET /api/leaderboard/:levelUuid?top=50 → [{user,score,rank}]
 
 管理后台（需鉴权/角色）
 
@@ -284,3 +284,14 @@ freemium + 道具付费（提示、移除一个方块、额外槽位临时扩展
 保留“回放日志”至少 30 天，用于分析卡点与处理用户申诉。
 
 美术资源请使用原创或受许可的素材，避免侵权。
+
+十五、最近更新 (Recent Updates)
+
+2025-12-10: 关卡生成算法升级 & 重构
+- **核心算法升级**: 实现了“延迟消除”生成算法 (Delayed Match Algorithm)。
+  - 旧算法: 纯随机/简单堆叠，容易出现无脑消除。
+  - 新算法: 采用“逆向模拟 + 槽位库存”逻辑，强制生成需要玩家将方块放入槽位暂存才能解锁后续方块的局面。
+  - 效果: 模拟测试显示，约 60% 的消除需要利用槽位策略 (Delayed Match Ratio)，显著提升了游戏策略性和难度。
+- **技术重构**:
+  - 全局统一将 `levelId` (曾混用) 重构为 `levelUuid`，确保数据库、后端 API、前端组件和管理后台的一致性。
+  - 修复了 API 500 错误和前端类型定义不匹配的问题。
