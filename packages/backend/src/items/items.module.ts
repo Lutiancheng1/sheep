@@ -4,9 +4,10 @@ import { ItemsService } from './items.service';
 import { ItemsController } from './items.controller';
 import { User } from '../users/user.entity';
 import { UserLogsModule } from '../user-logs/user-logs.module';
+import { SystemConfigModule } from '../config/system-config.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User]), UserLogsModule],
+  imports: [TypeOrmModule.forFeature([User]), UserLogsModule, SystemConfigModule],
   controllers: [ItemsController],
   providers: [ItemsService],
 })

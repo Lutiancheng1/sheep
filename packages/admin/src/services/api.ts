@@ -193,3 +193,32 @@ export const updateLevel = async (
   const response = await api.patch(`/levels/${levelUuid}`, updates);
   return response.data;
 };
+
+// 系统配置
+export interface SystemConfig {
+  id: number;
+  adVideoUrl: string;
+  adDurationSeconds: number;
+  dailyReviveLimit: number;
+  dailyResetHour: number;
+  updatedAt: string;
+}
+
+export const getSystemConfig = async (): Promise<SystemConfig> => {
+  const response = await api.get('/system-config');
+  return response.data;
+};
+
+export const updateSystemConfig = async (data: Partial<SystemConfig>): Promise<SystemConfig> => {
+  const response = await api.put('/system-config', data);
+  return response.data;
+};
+
+// 更新用户道具
+export const updateUserItems = async (
+  userId: string,
+  items: { remove: number; undo: number; shuffle: number; revive: number },
+) => {
+  const response = await api.post(`/users/${userId}/items`, items);
+  return response.data;
+};

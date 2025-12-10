@@ -29,6 +29,10 @@ const MainLayout: React.FC = () => {
       key: '/logs',
       label: '日志审计',
     },
+    {
+      key: '/config',
+      label: '系统配置',
+    },
   ];
 
   const handleLogout = () => {

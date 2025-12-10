@@ -8,6 +8,7 @@ import LevelEditor from './pages/LevelEditor';
 import UserList from './pages/UserList';
 import UserLogs from './pages/UserLogs';
 import Login from './pages/Login';
+import SystemConfigPage from './pages/SystemConfigPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 const App: React.FC = () => {
@@ -33,6 +34,7 @@ const App: React.FC = () => {
             <Route path="levels/:id" element={<LevelEditor />} />
             <Route path="users" element={<UserList />} />
             <Route path="logs" element={<UserLogs />} />
+            <Route path="config" element={<SystemConfigPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

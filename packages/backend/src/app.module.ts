@@ -23,6 +23,7 @@ import { RedisModule } from '@nestjs-modules/ioredis';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { UserLogsModule } from './user-logs/user-logs.module';
 import { AdminModule } from './admin/admin.module';
+import { SystemConfigModule } from './config/system-config.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { AdminModule } from './admin/admin.module';
     ItemsModule,
     UserLogsModule,
     AdminModule,
+    SystemConfigModule,
   ],
   controllers: [AppController],
   providers: [AppService],

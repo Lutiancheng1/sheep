@@ -41,7 +41,7 @@ export class AuthService {
   async register(username: string, pass: string) {
     const existingUser = await this.usersService.findOne(username);
     if (existingUser) {
-      throw new UnauthorizedException('User already exists');
+      throw new UnauthorizedException('用户名已存在');
     }
     const salt = await bcrypt.genSalt();
     const hash = await bcrypt.hash(pass, salt);
@@ -59,7 +59,7 @@ export class AuthService {
     // 1. Check if username is taken
     const existingUser = await this.usersService.findOne(username);
     if (existingUser) {
-      throw new UnauthorizedException('Username already taken');
+      throw new UnauthorizedException('用户名已存在');
     }
 
     // 2. Hash password

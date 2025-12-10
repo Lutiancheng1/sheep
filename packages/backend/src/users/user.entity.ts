@@ -26,8 +26,11 @@ export class User {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @Column({ type: 'simple-json' })
-  dailyItemUsage: { remove: number; undo: number; shuffle: number };
+  @Column({ default: 0 })
+  dailyReviveUsage: number;
+
+  @Column({ type: 'simple-json', default: JSON.stringify({ remove: 2, undo: 2, shuffle: 2 }) })
+  itemInventory: { remove: number; undo: number; shuffle: number };
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   lastItemResetDate: Date;

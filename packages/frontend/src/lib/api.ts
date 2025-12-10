@@ -103,7 +103,11 @@ export const api = {
     return this.request('/items/status');
   },
 
-  async useItem(type: 'remove' | 'undo' | 'shuffle') {
+  async getSystemConfig() {
+    return this.request('/system-config');
+  },
+
+  async useItem(type: 'remove' | 'undo' | 'shuffle' | 'revive') {
     return this.request('/items/use', {
       method: 'POST',
       body: JSON.stringify({ type }),

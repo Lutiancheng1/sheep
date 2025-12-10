@@ -9,6 +9,9 @@ import GameScene from './scenes/GameScene';
 import Leaderboard from './Leaderboard';
 import SettingsModal from './SettingsModal';
 
+import { AdPlayer } from './AdPlayer';
+import { api } from '@/lib/api';
+
 export default function PhaserGame() {
   const gameRef = useRef<HTMLDivElement>(null);
   const phaserGameInstanceRef = useRef<Phaser.Game | null>(null);
@@ -18,7 +21,21 @@ export default function PhaserGame() {
   const [leaderboardLevelUuid, setLeaderboardLevelUuid] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Ad State
+  const [showAd, setShowAd] = useState(false);
+  const [adConfig, setAdConfig] = useState({ videoUrl: '', duration: 15 });
+
   useEffect(() => {
+    // Fetch system config
+    api.getSystemConfig().then((config) => {
+      if (config) {
+        setAdConfig({
+          videoUrl: config.adVideoUrl,
+          duration: config.adDurationSeconds,
+        });
+      }
+    });
+
     const handleOpenLeaderboard = (e: Event) => {
       const customEvent = e as CustomEvent<{ levelUuid?: string }>;
       setLeaderboardLevelUuid(customEvent.detail?.levelUuid);
@@ -29,6 +46,21 @@ export default function PhaserGame() {
       setShowSettings(true);
     };
 
+    const handleShowAdRevive = async () => {
+      try {
+        const config = await api.getSystemConfig();
+        if (config) {
+          setAdConfig({
+            videoUrl: config.adVideoUrl,
+            duration: config.adDurationSeconds,
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch ad config:', error);
+      }
+      setShowAd(true);
+    };
+
     // 监听游戏场景准备完成事件
     const handleGameReady = () => {
       setIsLoading(false);
@@ -36,6 +68,7 @@ export default function PhaserGame() {
 
     window.addEventListener('OPEN_LEADERBOARD', handleOpenLeaderboard as EventListener);
     window.addEventListener('OPEN_SETTINGS', handleOpenSettings);
+    window.addEventListener('SHOW_AD_REVIVE', handleShowAdRevive);
     window.addEventListener('GAME_READY', handleGameReady);
 
     if (!gameRef.current) return;
@@ -79,6 +112,7 @@ export default function PhaserGame() {
       clearTimeout(fallbackTimer);
       window.removeEventListener('OPEN_LEADERBOARD', handleOpenLeaderboard as EventListener);
       window.removeEventListener('OPEN_SETTINGS', handleOpenSettings);
+      window.removeEventListener('SHOW_AD_REVIVE', handleShowAdRevive);
       window.removeEventListener('GAME_READY', handleGameReady);
       if (phaserGameInstanceRef.current) {
         phaserGameInstanceRef.current.destroy(true);
@@ -86,6 +120,24 @@ export default function PhaserGame() {
       }
     };
   }, []);
+
+  const handleAdComplete = async () => {
+    try {
+      const result = await api.useItem('revive');
+      if (result.success) {
+        setShowAd(false);
+        // Notify Phaser to revive
+        window.dispatchEvent(new CustomEvent('REVIVE_SUCCESS'));
+      } else {
+        alert(result.message || '复活失败');
+        setShowAd(false);
+      }
+    } catch (error) {
+      console.error('Revive failed:', error);
+      alert('复活失败，请稍后重试');
+      setShowAd(false);
+    }
+  };
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
@@ -144,6 +196,14 @@ export default function PhaserGame() {
       />
 
       <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
+
+      <AdPlayer
+        visible={showAd}
+        videoUrl={adConfig.videoUrl}
+        durationSeconds={adConfig.duration}
+        onComplete={handleAdComplete}
+        onCancel={() => setShowAd(false)}
+      />
 
       <style jsx>{`
         @keyframes spin {

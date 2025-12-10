@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../users/user.entity';
 import { UserLogsService } from '../user-logs/user-logs.service';
+import { SystemConfigService } from '../config/system-config.service';
 import dayjs from 'dayjs';
 
 @Injectable()
@@ -11,8 +12,10 @@ export class ItemsService {
 
   constructor(
     @InjectRepository(User)
+    @InjectRepository(User)
     private userRepository: Repository<User>,
     private userLogsService: UserLogsService,
+    private systemConfigService: SystemConfigService,
   ) {}
 
   private readonly DAILY_LIMIT = 2;
@@ -20,84 +23,117 @@ export class ItemsService {
   async getItemStatus(userId: string) {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
-      throw new BadRequestException('User not found');
+      throw new BadRequestException('用户不存在');
     }
 
-    this.checkAndResetDailyUsage(user);
+    await this.checkAndResetDailyUsage(user);
     await this.userRepository.save(user);
 
-    const usage = user.dailyItemUsage || {};
+    const config = await this.systemConfigService.getConfig();
+
+    // Ensure inventory exists
+    const inventory = user.itemInventory || { remove: 0, undo: 0, shuffle: 0 };
 
     return {
       limits: {
-        remove: this.DAILY_LIMIT,
-        undo: this.DAILY_LIMIT,
-        shuffle: this.DAILY_LIMIT,
+        // Props don't have daily limits anymore, but we return -1 or similar to indicate "unlimited"/inventory based
+        // Or we can just return the inventory count as the "limit" for frontend compatibility if needed,
+        // but better to be explicit.
+        // For now, let's return the inventory count as the "remaining" logic in frontend might expect a limit.
+        // Actually, the frontend probably expects { limits, usage }.
+        // If we want to show "Remaining: 5", we can set limit=5, usage=0.
+        remove: inventory.remove,
+        undo: inventory.undo,
+        shuffle: inventory.shuffle,
+        revive: config.dailyReviveLimit,
       },
       usage: {
-        remove: usage.remove || 0,
-        undo: usage.undo || 0,
-        shuffle: usage.shuffle || 0,
+        remove: 0, // Inventory based, so "usage" relative to current inventory is 0
+        undo: 0,
+        shuffle: 0,
+        revive: user.dailyReviveUsage || 0,
       },
+      inventory: inventory, // Add explicit inventory for clearer API
     };
   }
 
-  async useItem(userId: string, type: 'remove' | 'undo' | 'shuffle') {
+  async useItem(userId: string, type: 'remove' | 'undo' | 'shuffle' | 'revive') {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
-      throw new BadRequestException('User not found');
+      throw new BadRequestException('用户不存在');
     }
 
-    this.checkAndResetDailyUsage(user);
+    await this.checkAndResetDailyUsage(user);
 
-    // Clone the object to ensure TypeORM detects the change
-    // Ensure it's an object
-    let usage = user.dailyItemUsage;
-    if (typeof usage !== 'object' || usage === null) {
-      usage = { remove: 0, undo: 0, shuffle: 0 };
+    const config = await this.systemConfigService.getConfig();
+
+    if (type === 'revive') {
+      const limit = config.dailyReviveLimit;
+      const currentUsage = user.dailyReviveUsage || 0;
+
+      if (currentUsage >= limit) {
+        return { success: false, message: '今日复活次数已达上限' };
+      }
+
+      user.dailyReviveUsage = currentUsage + 1;
+      await this.userRepository.save(user);
+
+      await this.userLogsService.logAction(userId, 'ITEM_USE', {
+        type,
+        remaining: limit - user.dailyReviveUsage,
+      });
+
+      return { success: true, remaining: limit - user.dailyReviveUsage };
     } else {
-      usage = { ...usage };
+      // Props Logic (Inventory)
+      // Ensure inventory exists
+      let inventory = user.itemInventory;
+      if (!inventory) {
+        inventory = { remove: 0, undo: 0, shuffle: 0 };
+      }
+
+      const count = inventory[type] || 0;
+
+      if (count <= 0) {
+        return { success: false, message: '道具数量不足' };
+      }
+
+      inventory[type] = count - 1;
+      user.itemInventory = { ...inventory }; // Reassign to trigger update
+
+      await this.userRepository.save(user);
+
+      await this.userLogsService.logAction(userId, 'ITEM_USE', {
+        type,
+        remaining: inventory[type],
+      });
+
+      return { success: true, remaining: inventory[type] };
     }
-
-    // Ensure all keys exist for safety
-    if (typeof usage.remove !== 'number') usage.remove = 0;
-    if (typeof usage.undo !== 'number') usage.undo = 0;
-    if (typeof usage.shuffle !== 'number') usage.shuffle = 0;
-
-    const currentUsage = usage[type] || 0;
-
-    this.logger.log(
-      `用户 ${userId} 使用道具 ${type}，当前次数: ${currentUsage}，限制: ${this.DAILY_LIMIT}`,
-    );
-
-    if (currentUsage >= this.DAILY_LIMIT) {
-      this.logger.warn(`用户 ${userId} 的道具 ${type} 已达每日限制`);
-      return { success: false, message: 'Daily limit reached' };
-    }
-
-    usage[type] = currentUsage + 1;
-    user.dailyItemUsage = usage;
-
-    this.logger.log(`保存用户 ${userId} 的新使用次数: ${JSON.stringify(usage)}`);
-
-    await this.userRepository.save(user);
-
-    // Log the action
-    await this.userLogsService.logAction(userId, 'ITEM_USE', {
-      type,
-      remaining: this.DAILY_LIMIT - usage[type],
-    });
-
-    return { success: true, remaining: this.DAILY_LIMIT - usage[type] };
   }
 
-  private checkAndResetDailyUsage(user: User) {
+  private async checkAndResetDailyUsage(user: User) {
+    const config = await this.systemConfigService.getConfig();
+    const resetHour = config.dailyResetHour;
+
     const now = dayjs();
     const lastReset = dayjs(user.lastItemResetDate);
 
-    // If last reset was not today
-    if (!lastReset.isSame(now, 'day')) {
-      user.dailyItemUsage = { remove: 0, undo: 0, shuffle: 0 };
+    // Calculate the reset time for today
+    let todayResetTime = dayjs().hour(resetHour).minute(0).second(0).millisecond(0);
+
+    // If now is before the reset time, the relevant reset time was yesterday
+    if (now.isBefore(todayResetTime)) {
+      todayResetTime = todayResetTime.subtract(1, 'day');
+    }
+
+    // If last reset was before the calculated reset time, we need to reset
+    if (lastReset.isBefore(todayResetTime)) {
+      this.logger.log(
+        `Resetting daily usage for user ${user.id}. Last reset: ${lastReset.format()}, Target reset: ${todayResetTime.format()}`,
+      );
+      // Only reset revive usage
+      user.dailyReviveUsage = 0;
       user.lastItemResetDate = now.toDate();
     }
   }

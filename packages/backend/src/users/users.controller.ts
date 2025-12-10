@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Post, Delete, UseGuards, Body } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { AdminGuard } from '../admin/admin.guard';
 
@@ -65,5 +65,15 @@ export class UsersController {
       ...result,
       freedSpace,
     };
+  }
+
+  // 更新用户道具使用情况 - 需要管理员权限
+  @Post(':id/items')
+  @UseGuards(AdminGuard)
+  async updateUserItems(
+    @Param('id') id: string,
+    @Body() body: { remove: number; undo: number; shuffle: number; revive: number },
+  ) {
+    return this.usersService.updateUserItems(id, body);
   }
 }

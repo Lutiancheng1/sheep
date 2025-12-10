@@ -36,15 +36,51 @@ export class UsersService {
       username,
       passwordHash,
       isGuest,
-      // 显式初始化道具使用次数为 0（表示未使用，剩余 DAILY_LIMIT 次）
-      dailyItemUsage: { remove: 0, undo: 0, shuffle: 0 },
+      // Initialize inventory with 2 of each prop
+      itemInventory: { remove: 2, undo: 2, shuffle: 2 },
+      dailyReviveUsage: 0,
       lastItemResetDate: new Date(),
     });
-    this.logger.log(`创建的user对象 dailyItemUsage: ${JSON.stringify(user.dailyItemUsage)}`);
+    this.logger.log(`创建的user对象 inventory: ${JSON.stringify(user.itemInventory)}`);
     const savedUser = await this.usersRepository.save(user);
     this.logger.log(
-      `用户创建成功 - id: ${savedUser.id}, dailyItemUsage: ${JSON.stringify(savedUser.dailyItemUsage)}`,
+      `用户创建成功 - id: ${savedUser.id}, inventory: ${JSON.stringify(savedUser.itemInventory)}`,
     );
+    return savedUser;
+  }
+
+  // ... (findById, update, findAll, findUselessGuests, cleanupGuests, deleteUser methods remain unchanged)
+
+  /**
+   * 更新用户道具使用情况
+   * items: { remove: number, undo: number, shuffle: number, revive: number }
+   * 对于 props (remove, undo, shuffle)，这里的值代表"剩余数量" (inventory)
+   * 对于 revive，这里的值代表"今日已用" (daily usage)
+   */
+  async updateUserItems(
+    id: string,
+    items: { remove: number; undo: number; shuffle: number; revive: number },
+  ): Promise<User> {
+    const user = await this.findById(id);
+    if (!user) {
+      throw new Error('用户不存在');
+    }
+
+    // Update Inventory for props
+    user.itemInventory = {
+      remove: items.remove,
+      undo: items.undo,
+      shuffle: items.shuffle,
+    };
+
+    // Update Daily Usage for revive
+    user.dailyReviveUsage = items.revive;
+
+    const savedUser = await this.usersRepository.save(user);
+
+    // 失效缓存
+    await this.redis.del(`user:cache:${id}`);
+
     return savedUser;
   }
 

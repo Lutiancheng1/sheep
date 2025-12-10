@@ -14,7 +14,7 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
     const user = await this.authService.validateUser(username, pass);
     if (!user) {
       console.log('LocalStrategy.validate failed for:', username);
-      throw new UnauthorizedException();
+      throw new UnauthorizedException('用户名或密码错误');
     }
     console.log('LocalStrategy.validate success for:', username);
     return user;

@@ -1,7 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Card, Tag, message, Button, Modal, Space, Descriptions, Popconfirm } from 'antd';
-import { DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
-import { getUsers, getCleanupPreview, executeCleanup, deleteUser } from '../services/api';
+import {
+  Table,
+  Card,
+  Tag,
+  message,
+  Button,
+  Modal,
+  Space,
+  Descriptions,
+  Popconfirm,
+  Form,
+  InputNumber,
+} from 'antd';
+import { DeleteOutlined, ExclamationCircleOutlined, EditOutlined } from '@ant-design/icons';
+import {
+  getUsers,
+  getCleanupPreview,
+  executeCleanup,
+  deleteUser,
+  updateUserItems,
+} from '../services/api';
 
 interface User {
   id: string;
@@ -11,6 +29,12 @@ interface User {
   maxScore: number;
   currentLevel: number;
   totalPlaytimeSeconds: number;
+  dailyReviveUsage: number;
+  itemInventory: {
+    remove: number;
+    undo: number;
+    shuffle: number;
+  };
 }
 
 interface CleanupPreview {
@@ -30,6 +54,12 @@ const UserList: React.FC = () => {
   const [cleanupModalVisible, setCleanupModalVisible] = useState(false);
   const [cleanupPreview, setCleanupPreview] = useState<CleanupPreview | null>(null);
   const [cleaningup, setCleaningup] = useState(false);
+
+  // Edit Items State
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editForm] = Form.useForm();
+  const [savingItems, setSavingItems] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -102,6 +132,36 @@ const UserList: React.FC = () => {
     }
   };
 
+  // 打开编辑道具弹窗
+  const handleEditItems = (user: User) => {
+    setEditingUser(user);
+    editForm.setFieldsValue({
+      remove: user.itemInventory?.remove || 0,
+      undo: user.itemInventory?.undo || 0,
+      shuffle: user.itemInventory?.shuffle || 0,
+      revive: user.dailyReviveUsage || 0,
+    });
+    setEditModalVisible(true);
+  };
+
+  // 保存道具修改
+  const handleSaveItems = async () => {
+    if (!editingUser) return;
+    try {
+      setSavingItems(true);
+      const values = await editForm.validateFields();
+      await updateUserItems(editingUser.id, values);
+      message.success('用户道具使用情况已更新');
+      setEditModalVisible(false);
+      fetchUsers(); // 刷新列表
+    } catch (error) {
+      message.error('更新失败');
+      console.error(error);
+    } finally {
+      setSavingItems(false);
+    }
+  };
+
   const columns = [
     {
       title: '用户 ID',
@@ -158,20 +218,31 @@ const UserList: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      width: 100,
+      width: 200,
       render: (_: any, record: User) => (
-        <Popconfirm
-          title="确认删除"
-          description={`确定要删除用户 "${record.username}" 吗?此操作不可恢复。`}
-          onConfirm={() => handleDeleteUser(record.id, record.username)}
-          okText="确认删除"
-          cancelText="取消"
-          okType="danger"
-        >
-          <Button type="link" danger size="small">
-            删除
+        <Space>
+          <Button
+            type="primary"
+            ghost
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => handleEditItems(record)}
+          >
+            道具
           </Button>
-        </Popconfirm>
+          <Popconfirm
+            title="确认删除"
+            description={`确定要删除用户 "${record.username}" 吗?此操作不可恢复。`}
+            onConfirm={() => handleDeleteUser(record.id, record.username)}
+            okText="确认删除"
+            cancelText="取消"
+            okType="danger"
+          >
+            <Button type="link" danger size="small">
+              删除
+            </Button>
+          </Popconfirm>
+        </Space>
       ),
     },
   ];
@@ -300,6 +371,42 @@ const UserList: React.FC = () => {
             )}
           </div>
         )}
+      </Modal>
+
+      {/* 编辑道具弹窗 */}
+      <Modal
+        title={`编辑用户道具 - ${editingUser?.username}`}
+        open={editModalVisible}
+        onCancel={() => setEditModalVisible(false)}
+        onOk={handleSaveItems}
+        confirmLoading={savingItems}
+      >
+        <div style={{ marginBottom: 16, color: '#666' }}>
+          <ExclamationCircleOutlined style={{ color: '#faad14', marginRight: 8 }} />
+          <strong>注意:</strong>
+          <ul style={{ paddingLeft: 20, marginTop: 8 }}>
+            <li>
+              <strong>道具 (移出/撤销/洗牌):</strong> 修改的是用户的<strong>剩余库存</strong>。
+            </li>
+            <li>
+              <strong>复活:</strong> 修改的是用户<strong>今日已使用</strong>的次数。
+            </li>
+          </ul>
+        </div>
+        <Form form={editForm} layout="vertical">
+          <Form.Item name="remove" label="移出道具 (剩余库存)">
+            <InputNumber min={0} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="undo" label="撤销道具 (剩余库存)">
+            <InputNumber min={0} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="shuffle" label="洗牌道具 (剩余库存)">
+            <InputNumber min={0} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="revive" label="复活 (今日已用次数)">
+            <InputNumber min={0} style={{ width: '100%' }} />
+          </Form.Item>
+        </Form>
       </Modal>
     </>
   );

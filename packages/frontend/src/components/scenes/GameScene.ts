@@ -13,6 +13,7 @@ interface TileData {
   id: string;
   type: string;
   position: TilePosition;
+  originalPosition: TilePosition; // Store original position for Undo
   sprite?: Phaser.GameObjects.Container;
   isClickable: boolean;
 }
@@ -26,7 +27,7 @@ export default class GameScene extends Phaser.Scene {
   private infoText?: Phaser.GameObjects.Text; // 关卡信息文本(日期+关卡号)
   private score = 0;
   private tileSize = 80;
-  private itemCounts = { remove: 0, undo: 0, shuffle: 0 };
+  private itemCounts = { remove: 0, undo: 0, shuffle: 0, revive: 0 };
   private isMuted = false; // BGM静音状态
   private soundButton?: Phaser.GameObjects.Container; // 声音按钮容器
 
@@ -111,12 +112,58 @@ export default class GameScene extends Phaser.Scene {
       Analytics.endSession();
       window.removeEventListener('DISABLE_INPUT', this.disableInput);
       window.removeEventListener('ENABLE_INPUT', this.enableInput);
+      window.removeEventListener('REVIVE_SUCCESS', this.onReviveSuccess);
     });
 
     // 监听输入控制事件
     window.addEventListener('DISABLE_INPUT', this.disableInput);
     window.addEventListener('ENABLE_INPUT', this.enableInput);
+    window.addEventListener('REVIVE_SUCCESS', this.onReviveSuccess);
   }
+
+  private onReviveSuccess = () => {
+    // 1. Close game over popup
+    this.children.list.filter((c) => c.name === 'game_over_popup').forEach((c) => c.destroy());
+
+    // 2. Logic: Keep 3 tiles, move others back
+    if (this.slots.length > 3) {
+      const tilesToReturn = this.slots.splice(3); // Keep first 3, take the rest
+
+      tilesToReturn.forEach((tile) => {
+        if (!tile.sprite) return;
+
+        // Random position near center
+        const x = 375 + Phaser.Math.Between(-150, 150);
+        const y = 400 + Phaser.Math.Between(-150, 150);
+
+        // Find max Z
+        let maxZ = 0;
+        this.tiles.forEach((t) => (maxZ = Math.max(maxZ, t.position.z)));
+        tile.position = { x, y, z: maxZ + 1 };
+
+        this.tiles.set(tile.id, tile);
+
+        this.tweens.add({
+          targets: tile.sprite,
+          x: x,
+          y: y,
+          scale: 1,
+          duration: 500,
+          ease: 'Back.easeOut',
+          onComplete: () => {
+            tile.sprite?.setDepth(tile.position.z * 100);
+            this.updateTileClickability();
+          },
+        });
+      });
+    }
+
+    // 3. Rearrange remaining slots
+    this.rearrangeSlots();
+
+    // 4. Update revive count
+    this.itemCounts.revive = Math.max(0, this.itemCounts.revive - 1);
+  };
 
   private disableInput = () => {
     this.input.enabled = false;
@@ -230,18 +277,19 @@ export default class GameScene extends Phaser.Scene {
             remove: (data.limits.remove || 2) - (data.usage.remove || 0),
             undo: (data.limits.undo || 2) - (data.usage.undo || 0),
             shuffle: (data.limits.shuffle || 2) - (data.usage.shuffle || 0),
+            revive: (data.limits.revive || 3) - (data.usage.revive || 0),
           };
           this.createPropButtons();
         } else {
           // 使用默认值
-          this.itemCounts = { remove: 2, undo: 2, shuffle: 2 };
+          this.itemCounts = { remove: 2, undo: 2, shuffle: 2, revive: 3 };
           this.createPropButtons();
         }
       })
       .catch((err) => {
         console.error('Failed to fetch item status:', err);
         // 使用默认值而不是 0
-        this.itemCounts = { remove: 2, undo: 2, shuffle: 2 };
+        this.itemCounts = { remove: 2, undo: 2, shuffle: 2, revive: 3 };
         this.createPropButtons();
       });
 
@@ -618,15 +666,12 @@ export default class GameScene extends Phaser.Scene {
     const tile = this.slots.pop();
     if (!tile || !tile.sprite) return;
 
-    // 移回棋盘 (随机位置在中心区域或原位?)
-    // 为了简单起见，我们将其移动到中心区域的一个随机位置，并设置较高的 Z 轴
-    const x = 375 + Phaser.Math.Between(-100, 100);
-    const y = 400 + Phaser.Math.Between(-100, 100);
+    // 移回棋盘 (返回原位)
+    // 使用保存的原始位置
+    const { x, y, z } = tile.originalPosition;
 
-    // 找到最高的 Z 轴索引以确保它在最上层
-    let maxZ = 0;
-    this.tiles.forEach((t) => (maxZ = Math.max(maxZ, t.position.z)));
-    tile.position = { x, y, z: maxZ + 1 };
+    // 更新位置信息
+    tile.position = { x, y, z };
 
     // 放回方块 Map
     this.tiles.set(tile.id, tile);
@@ -637,10 +682,10 @@ export default class GameScene extends Phaser.Scene {
       x: x,
       y: y,
       scale: 1,
-      duration: 300,
+      duration: 500,
       ease: 'Back.easeOut',
       onComplete: () => {
-        tile.sprite?.setDepth(tile.position.z * 100);
+        tile.sprite?.setDepth(z * 100);
         this.updateTileClickability();
       },
     });
@@ -738,7 +783,7 @@ export default class GameScene extends Phaser.Scene {
       overlay.destroy();
       panel.destroy();
       title.destroy();
-      this.children.list.filter((c) => c.name === 'pause_btn').forEach((c) => c.destroy());
+      this.children.list.filter((c) => c.name === 'menu_btn').forEach((c) => c.destroy());
       this.resumeGame();
     });
 
@@ -753,32 +798,58 @@ export default class GameScene extends Phaser.Scene {
 
   createMenuButton(x: number, y: number, text: string, color: number, callback: () => void) {
     const btn = this.add.container(x, y);
-    btn.name = 'pause_btn';
+    btn.name = 'menu_btn';
+
+    // Shadow
+    const shadow = this.add.graphics();
+    shadow.fillStyle(0x000000, 0.2);
+    shadow.fillRoundedRect(-116, -31, 240, 70, 16);
 
     const bg = this.add.graphics();
     bg.fillStyle(color, 1);
     bg.fillRoundedRect(-120, -35, 240, 70, 16);
 
+    // Highlight/Border
+    bg.lineStyle(2, 0xffffff, 0.4);
+    bg.strokeRoundedRect(-120, -35, 240, 70, 16);
+
     const label = this.add
-      .text(0, 2, text, {
+      .text(0, 0, text, {
         fontSize: '28px',
         color: '#ffffff',
         fontStyle: 'bold',
         padding: { top: 4, bottom: 4 },
+        shadow: { offsetX: 1, offsetY: 1, color: '#000', blur: 2, fill: true },
       })
       .setOrigin(0.5);
 
-    btn.add([bg, label]);
+    btn.add([shadow, bg, label]);
     btn.setSize(240, 70);
     btn.setDepth(3002);
 
-    // Fix: Use config object for setInteractive
     bg.setInteractive({
       hitArea: new Phaser.Geom.Rectangle(-120, -35, 240, 70),
       hitAreaCallback: Phaser.Geom.Rectangle.Contains,
       useHandCursor: true,
     });
-    bg.on('pointerdown', callback);
+
+    bg.on('pointerdown', () => {
+      // If game is paused, run callback immediately to avoid tween issues
+      if (this.isPaused) {
+        callback();
+        return;
+      }
+
+      this.tweens.add({
+        targets: btn,
+        scale: 0.95,
+        duration: 80,
+        yoyo: true,
+        onComplete: () => {
+          callback();
+        },
+      });
+    });
 
     return btn;
   }
@@ -834,6 +905,7 @@ export default class GameScene extends Phaser.Scene {
         id: `tile-${index}`,
         type: tileConfig.type,
         position: { x, y, z: tileConfig.layer },
+        originalPosition: { x, y, z: tileConfig.layer },
         isClickable: false,
       };
 
@@ -1138,7 +1210,7 @@ export default class GameScene extends Phaser.Scene {
 
   gameOver() {
     Analytics.logEvent('LEVEL_FAIL', { levelUuid: this.currentLevelUuid, score: this.score });
-    this.createPopup('💔 游戏失败', '#FF6B6B', '重新开始');
+    this.createPopup('💔 游戏失败', '#FF6B6B', '重新开始', null, true);
   }
   async victory() {
     let nextLevelUuid: string | null = null;
@@ -1195,19 +1267,27 @@ export default class GameScene extends Phaser.Scene {
     });
   }
 
-  createPopup(title: string, color: string, btnText: string, nextLevelUuid?: string | null) {
+  createPopup(
+    title: string,
+    color: string,
+    btnText: string,
+    nextLevelUuid?: string | null,
+    isFail?: boolean,
+  ) {
     const overlay = this.add.rectangle(375, 667, 750, 1334, 0x000000, 0.7);
     overlay.setDepth(2000);
     overlay.setInteractive();
+    overlay.name = 'game_over_popup'; // Add name for easy removal
 
     const panel = this.add.graphics();
     panel.fillStyle(0xfff5e6, 1);
-    panel.fillRoundedRect(125, 400, 500, 500, 20);
+    panel.fillRoundedRect(125, 380, 500, 620, 20);
     panel.lineStyle(8, 0x8b4513, 1);
-    panel.strokeRoundedRect(125, 400, 500, 500, 20);
+    panel.strokeRoundedRect(125, 380, 500, 620, 20);
     panel.setDepth(2001);
+    panel.name = 'game_over_popup';
 
-    this.add
+    const titleText = this.add
       .text(375, 480, title, {
         fontSize: '56px',
         color: color,
@@ -1216,29 +1296,48 @@ export default class GameScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
       .setDepth(2002);
+    titleText.name = 'game_over_popup';
 
-    this.add
+    const scoreText = this.add
       .text(375, 580, `最终分数: ${this.score}`, {
         fontSize: '36px',
         color: '#8B4513',
       })
       .setOrigin(0.5)
       .setDepth(2002);
+    scoreText.name = 'game_over_popup';
 
-    const btnY = 700;
+    let btnY = 700;
+
+    // Revive Button
+    if (isFail && this.itemCounts.revive > 0) {
+      const reviveBtn = this.createMenuButton(
+        375,
+        btnY,
+        `▶️ 复活 (${this.itemCounts.revive})`,
+        0xffd700,
+        () => {
+          window.dispatchEvent(new CustomEvent('SHOW_AD_REVIVE'));
+        },
+      );
+      reviveBtn.name = 'game_over_popup';
+      btnY += 110;
+    }
 
     if (nextLevelUuid) {
       this.createMenuButton(375, btnY, '下一关', 0x2e8b57, () => {
         this.scene.restart({ id: nextLevelUuid });
       });
     } else {
-      this.createMenuButton(375, btnY, btnText, 0xe67e22, () => {
+      const restartBtn = this.createMenuButton(375, btnY, btnText, 0xe67e22, () => {
         this.scene.restart({ id: this.currentLevelUuid });
       });
+      restartBtn.name = 'game_over_popup';
     }
 
-    this.createMenuButton(375, btnY + 110, '返回主菜单', 0x8b4513, () => {
+    const homeBtn = this.createMenuButton(375, btnY + 110, '返回主菜单', 0x8b4513, () => {
       this.scene.start('LevelSelectScene');
     });
+    homeBtn.name = 'game_over_popup';
   }
 }
