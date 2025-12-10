@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Level } from './level.entity';
+import type { LevelData } from './interfaces/level-data.interface';
 
 @Injectable()
 export class LevelsService {
@@ -33,7 +34,7 @@ export class LevelsService {
 
   async create(
     levelId: string,
-    data: Record<string, any>,
+    data: LevelData,
     difficulty: number,
     status: 'draft' | 'published' = 'draft',
   ): Promise<Level> {
@@ -83,7 +84,7 @@ export class LevelsService {
 
   async updateLevel(
     levelId: string,
-    updates: Partial<{ data: any; difficulty: number; sortOrder: number; status: string }>,
+    updates: Partial<{ data: LevelData; difficulty: number; sortOrder: number; status: string }>,
   ): Promise<Level> {
     const level = await this.levelsRepository.findOne({ where: { levelId } });
     if (!level) {

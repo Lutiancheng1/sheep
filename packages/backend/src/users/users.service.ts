@@ -7,6 +7,11 @@ import { User } from './user.entity';
 import { GameProgress } from '../progress/game-progress.entity';
 import { UserLog } from '../user-logs/user-log.entity';
 
+interface UserWithStats extends User {
+  maxScore: number;
+  currentLevel: number;
+}
+
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
@@ -69,7 +74,7 @@ export class UsersService {
     return this.usersRepository.findOne({ where: { id } }) as Promise<User>;
   }
 
-  async findAll(): Promise<any[]> {
+  async findAll(): Promise<UserWithStats[]> {
     try {
       // 1. 获取所有用户
       const users = await this.usersRepository.find({

@@ -59,7 +59,6 @@ export const api = {
       const data = await this.request('/auth/refresh', { method: 'POST' });
       if (data.access_token) {
         this.setToken(data.access_token);
-        console.log('Token refreshed successfully');
       }
       return data;
     } catch (e) {

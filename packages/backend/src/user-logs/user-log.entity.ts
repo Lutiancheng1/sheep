@@ -7,6 +7,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { User } from '../users/user.entity';
+import type { UserLogDetails } from './interfaces/user-log-details.interface';
 
 @Entity()
 export class UserLog {
@@ -24,7 +25,7 @@ export class UserLog {
   action: string; // e.g., 'LOGIN', 'LEVEL_START', 'ITEM_USE', 'HEARTBEAT'
 
   @Column({ type: 'simple-json', nullable: true })
-  details: any;
+  details: UserLogDetails | null;
 
   @CreateDateColumn()
   createdAt: Date;

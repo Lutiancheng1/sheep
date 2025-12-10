@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, UseGuards, Request } from '@nestjs/common';
 import { ItemsService } from './items.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import type { UserRequest } from '../auth/interfaces/user-request.interface';
 
 @Controller('items')
 export class ItemsController {
@@ -8,13 +9,16 @@ export class ItemsController {
 
   @UseGuards(JwtAuthGuard)
   @Get('status')
-  async getStatus(@Request() req: any) {
+  async getStatus(@Request() req: UserRequest) {
     return this.itemsService.getItemStatus(req.user.id);
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('use')
-  async useItem(@Request() req: any, @Body() body: { type: 'remove' | 'undo' | 'shuffle' }) {
+  async useItem(
+    @Request() req: UserRequest,
+    @Body() body: { type: 'remove' | 'undo' | 'shuffle' },
+  ) {
     return this.itemsService.useItem(req.user.id, body.type);
   }
 }

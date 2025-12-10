@@ -1,4 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn } from 'typeorm';
+import type { LevelData } from './interfaces/level-data.interface';
 
 @Entity()
 export class Level {
@@ -9,7 +10,7 @@ export class Level {
   levelId: string; // e.g., 'level-1'
 
   @Column('jsonb')
-  data: any; // Stores the JSON configuration of the level
+  data: LevelData; // Stores the JSON configuration of the level
 
   @Column({ default: 1 })
   difficulty: number;
