@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # PostgreSQL数据库
+  postgres:
+    image: postgres:14
+    container_name: sheep-game-postgres-1
+    restart: unless-stopped
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: sheep_game
+      POSTGRES_INITDB_ARGS: '--encoding=UTF8 --lc-collate=C --lc-ctype=C'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - sheep_network
+    # 内存限制(防止OOM)
+    mem_limit: 400m
+    mem_reservation: 200m
+
+  # Redis缓存
+  redis:
+    image: redis:alpine
+    container_name: sheep-game-redis-1
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    command: redis-server --maxmemory 200mb --maxmemory-policy allkeys-lru
+    networks:
+      - sheep_network
+    # 内存限制
+    mem_limit: 256m
+    mem_reservation: 128m
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  sheep_network:
+    driver: bridge

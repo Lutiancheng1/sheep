@@ -6,6 +6,11 @@ export default class StartScene extends Phaser.Scene {
     super({ key: 'StartScene' });
   }
 
+  preload() {
+    // 加载设置图标(SVG格式)
+    this.load.svg('settings', '/icons/settings.svg', { scale: 0.25 }); // 提高分辨率避免模糊
+  }
+
   create() {
     // 自动游客登录
     if (!api.token) {
@@ -123,18 +128,27 @@ export default class StartScene extends Phaser.Scene {
     });
 
     // 设置按钮 (右上角)
-    const settingsBtn = this.add
-      .text(680, 75, '⚙️', {
-        fontSize: '48px',
-        padding: { top: 10, bottom: 10, left: 10, right: 10 },
-      })
-      .setOrigin(0.5);
-    settingsBtn.setInteractive({ useHandCursor: true });
+    const settingsBtn = this.add.container(680, 75);
+    const settingsBg = this.add.graphics();
+    settingsBg.fillStyle(0x0099ff, 1); // 蓝色背景
+    settingsBg.fillRoundedRect(-30, -30, 60, 60, 10);
+    settingsBg.lineStyle(4, 0x000000, 1);
+    settingsBg.strokeRoundedRect(-30, -30, 60, 60, 10);
+
+    // 使用SVG齿轮图标
+    const settingsIcon = this.add.image(0, 0, 'settings').setDisplaySize(40, 40).setOrigin(0.5);
+    settingsBtn.add([settingsBg, settingsIcon]);
+
+    settingsBtn.setInteractive({
+      hitArea: new Phaser.Geom.Rectangle(-30, -30, 60, 60),
+      hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+      useHandCursor: true,
+    });
 
     settingsBtn.on('pointerdown', () => {
       this.tweens.add({
         targets: settingsBtn,
-        scale: 0.8,
+        scale: 0.9,
         duration: 100,
         yoyo: true,
         onComplete: () => {

@@ -58,10 +58,20 @@ export default class LevelSelectScene extends Phaser.Scene {
     // 关卡列表容器
     const listContainer = this.add.container(0, 0);
 
+    // Loading文本
+    const loadingText = this.add
+      .text(375, 600, '加载关卡列表...', {
+        fontSize: '32px',
+        color: '#2E8B57',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+
     // 获取关卡列表
     (async () => {
       try {
-        const response = await api.getLevels();
+        // 优化: 使用excludeData=true,只获取列表必要字段,减少响应体积
+        const response = await api.getLevels(true); // excludeData=true
         const levels = Array.isArray(response) ? response : [];
 
         // 按sortOrder排序,如果sortOrder不存在则按levelId数字排序(向后兼容)
@@ -110,6 +120,9 @@ export default class LevelSelectScene extends Phaser.Scene {
             unlockedLevels = levels.slice(0, unlockedCount).map((l: any) => l.levelId);
           }
         }
+
+        // 隐藏Loading文本
+        loadingText.destroy();
 
         levels.forEach((level: any, index: number) => {
           const isUnlocked = unlockedLevels.includes(level.levelId);
@@ -222,8 +235,10 @@ export default class LevelSelectScene extends Phaser.Scene {
         });
       } catch (err) {
         console.error('Failed to fetch levels', err);
+        // 隐藏Loading并显示错误
+        loadingText.destroy();
         this.add
-          .text(375, 400, '加载关卡失败', { color: '#ff0000', fontSize: '32px' })
+          .text(375, 400, '加载关卡失败,请稍后重试', { color: '#ff0000', fontSize: '32px' })
           .setOrigin(0.5);
       }
     })();

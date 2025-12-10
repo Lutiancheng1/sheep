@@ -68,8 +68,9 @@ export const api = {
     }
   },
 
-  async getLevels() {
-    return this.request('/levels');
+  async getLevels(excludeData = false) {
+    const queryParam = excludeData ? '?excludeData=true' : '';
+    return this.request(`/levels${queryParam}`);
   },
 
   async getLevel(id: string) {

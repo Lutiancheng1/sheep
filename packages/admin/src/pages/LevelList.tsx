@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Space, Card, Tag, message, Modal, Typography } from 'antd';
+import { Table, Button, Space, Card, Tag, message, Modal } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { ExclamationCircleOutlined, HolderOutlined } from '@ant-design/icons';
 import {
@@ -26,8 +26,6 @@ import {
   batchDeleteLevels,
   updateLevel,
 } from '../services/api';
-
-const { Text } = Typography;
 
 const LevelList: React.FC = () => {
   const [levels, setLevels] = useState<Level[]>([]);
@@ -274,9 +272,9 @@ const LevelList: React.FC = () => {
     <Card
       title="关卡管理"
       extra={
-          <Button type="primary" onClick={() => navigate('/levels/new')}>
-            新建关卡
-          </Button>
+        <Button type="primary" onClick={() => navigate('/levels/new')}>
+          新建关卡
+        </Button>
       }
     >
       {selectedRowKeys.length > 0 && (
@@ -297,11 +295,11 @@ const LevelList: React.FC = () => {
         >
           <Table
             rowSelection={rowSelection}
-            columns={columns}
             dataSource={levels}
+            columns={columns}
             rowKey="levelId"
             loading={loading}
-            pagination={{ pageSize: 10 }}
+            pagination={{ pageSize: 20 }}
             components={{
               body: {
                 row: DraggableRow,

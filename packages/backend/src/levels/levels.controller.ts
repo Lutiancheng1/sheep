@@ -8,8 +8,11 @@ export class LevelsController {
   constructor(private readonly levelsService: LevelsService) {}
 
   @Get()
-  async findAll(@Query('includeAll') includeAll?: string) {
-    return this.levelsService.findAll(includeAll === 'true');
+  async findAll(
+    @Query('includeAll') includeAll?: string,
+    @Query('excludeData') excludeData?: string,
+  ) {
+    return this.levelsService.findAll(includeAll === 'true', excludeData === 'true');
   }
 
   @Get(':id')

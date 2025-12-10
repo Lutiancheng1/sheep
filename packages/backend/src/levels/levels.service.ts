@@ -10,13 +10,20 @@ export class LevelsService {
     private levelsRepository: Repository<Level>,
   ) {}
 
-  async findAll(includeAll = false): Promise<Level[]> {
+  async findAll(includeAll = false, excludeData = false): Promise<Level[]> {
     // 前端只看到已发布的关卡,管理后台可以看到所有关卡
     const where = includeAll ? {} : { status: 'published' };
+
+    // 如果excludeData=true,不返回data字段(优化列表接口性能)
+    const selectFields = excludeData
+      ? (['id', 'levelId', 'difficulty', 'status', 'sortOrder', 'createdAt'] as (keyof Level)[])
+      : undefined;
+
     // 按sortOrder优先排序,如果sortOrder相同则按levelId排序
     return this.levelsRepository.find({
       where,
       order: { sortOrder: 'ASC', levelId: 'ASC' },
+      ...(selectFields && { select: selectFields }),
     });
   }
 
