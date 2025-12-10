@@ -50,3 +50,9 @@ tmp
 
 # TypeScript
 next-env.d.ts
+
+# Deployment & Production (包含服务器密码等敏感信息)
+deploy.sh
+update.sh
+deploy_artifacts/
+.deploy-temp/

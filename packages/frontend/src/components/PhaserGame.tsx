@@ -29,8 +29,14 @@ export default function PhaserGame() {
       setShowSettings(true);
     };
 
+    // 监听游戏场景准备完成事件
+    const handleGameReady = () => {
+      setIsLoading(false);
+    };
+
     window.addEventListener('OPEN_LEADERBOARD', handleOpenLeaderboard as EventListener);
     window.addEventListener('OPEN_SETTINGS', handleOpenSettings);
+    window.addEventListener('GAME_READY', handleGameReady);
 
     if (!gameRef.current) return;
 
@@ -62,15 +68,18 @@ export default function PhaserGame() {
 
     phaserGameInstanceRef.current = new Phaser.Game(config);
 
-    // 游戏初始化完成后隐藏 loading
-    setTimeout(() => {
+    // Phaser 初始化完成后延迟一小段时间,如果没有场景发送 GAME_READY 事件则自动隐藏 loading
+    // 这主要用于 StartScene 和 LevelSelectScene (它们不发送 GAME_READY)
+    const fallbackTimer = setTimeout(() => {
       setIsLoading(false);
-    }, 800);
+    }, 1000);
 
     return () => {
       console.log('PhaserGame: useEffect cleanup');
+      clearTimeout(fallbackTimer);
       window.removeEventListener('OPEN_LEADERBOARD', handleOpenLeaderboard as EventListener);
       window.removeEventListener('OPEN_SETTINGS', handleOpenSettings);
+      window.removeEventListener('GAME_READY', handleGameReady);
       if (phaserGameInstanceRef.current) {
         phaserGameInstanceRef.current.destroy(true);
         phaserGameInstanceRef.current = null;

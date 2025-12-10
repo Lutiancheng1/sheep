@@ -27,6 +27,8 @@ export default class GameScene extends Phaser.Scene {
   private score = 0;
   private tileSize = 80;
   private itemCounts = { remove: 0, undo: 0, shuffle: 0 };
+  private isMuted = false; // BGM静音状态
+  private soundButton?: Phaser.GameObjects.Container; // 声音按钮容器
 
   // 农场主题配色
   private colors = {
@@ -59,6 +61,13 @@ export default class GameScene extends Phaser.Scene {
     this.load.image('pumpkin', '/icons/pumpkin.png');
     this.load.image('flower', '/icons/flower.png');
 
+    // 加载设置图标(SVG格式)
+    this.load.svg('settings', '/icons/settings.svg', { scale: 0.2 }); // 提高分辨率避免模糊
+
+    // 加载声音图标(SVG格式)
+    this.load.svg('sound-on', '/icons/sound-on.svg', { scale: 0.5 }); // 提高分辨率
+    this.load.svg('sound-off', '/icons/sound-off.svg', { scale: 0.5 });
+
     // 加载背景音乐
     this.load.audio('bgm', '/assets/bgm.mp3');
   }
@@ -70,8 +79,9 @@ export default class GameScene extends Phaser.Scene {
     this.currentLevelId = data.levelId || 'level-1';
 
     // 异步获取所有关卡并计算当前关卡序号
+    // 优化: 使用 excludeData=true 只获取列表元数据,避免下载所有关卡的完整 tile 数据
     api
-      .getLevels()
+      .getLevels(true) // excludeData=true
       .then((response) => {
         const levels = Array.isArray(response) ? response : [];
 
@@ -125,11 +135,17 @@ export default class GameScene extends Phaser.Scene {
     // 0. 自动续签 Token (Sliding Expiration)
     api.refreshToken().catch((err) => console.warn('Token refresh failed:', err));
 
-    // 1. 播放背景音乐
-    if (!this.sound.get('bgm')) {
-      this.sound.play('bgm', { loop: true, volume: 0.5 });
-    } else if (!this.sound.get('bgm').isPlaying) {
-      this.sound.get('bgm').play({ loop: true, volume: 0.5 });
+    // 1. 从localStorage读取静音状态
+    const savedMuteState = localStorage.getItem('bgm_muted');
+    this.isMuted = savedMuteState === 'true';
+
+    // 2. 播放背景音乐(如果未静音)
+    if (!this.isMuted) {
+      if (!this.sound.get('bgm')) {
+        this.sound.play('bgm', { loop: true, volume: 0.5 });
+      } else if (!this.sound.get('bgm').isPlaying) {
+        this.sound.get('bgm').play({ loop: true, volume: 0.5 });
+      }
     }
 
     // 0. 重置游戏状态
@@ -244,9 +260,8 @@ export default class GameScene extends Phaser.Scene {
     settingsBg.lineStyle(4, 0x000000, 1);
     settingsBg.strokeRoundedRect(-30, -30, 60, 60, 10);
 
-    const gear = this.add
-      .text(0, 0, '⚙️', { fontSize: '32px', padding: { top: 8, bottom: 8, left: 8, right: 8 } })
-      .setOrigin(0.5);
+    // 使用SVG齿轮图标
+    const gear = this.add.image(0, 0, 'settings').setDisplaySize(40, 40).setOrigin(0.5);
     settingsBtn.add([settingsBg, gear]);
 
     // Fix: Use config object for setInteractive
@@ -256,6 +271,9 @@ export default class GameScene extends Phaser.Scene {
       useHandCursor: true,
     });
     settingsBtn.on('pointerup', () => this.pauseGame());
+
+    // 声音按钮 (设置按钮下方)
+    this.createSoundButton();
 
     const infoContainer = this.add.container(375, 100);
     const infoBg = this.add.graphics();
@@ -282,6 +300,60 @@ export default class GameScene extends Phaser.Scene {
         fontStyle: 'bold',
       })
       .setOrigin(1, 0.5);
+  }
+
+  createSoundButton() {
+    // 声音按钮位于设置按钮正下方 (x:60, y:180)
+    this.soundButton = this.add.container(60, 180);
+
+    const bg = this.add.graphics();
+    bg.fillStyle(0x0099ff, 1); // 蓝色背景(与设置按钮一致)
+    bg.fillRoundedRect(-30, -30, 60, 60, 10);
+    bg.lineStyle(4, 0x000000, 1);
+    bg.strokeRoundedRect(-30, -30, 60, 60, 10);
+
+    // 声音图标(使用SVG,根据当前状态显示)
+    const iconTexture = this.isMuted ? 'sound-off' : 'sound-on';
+    const icon = this.add
+      .image(0, 0, iconTexture)
+      .setDisplaySize(40, 40) // SVG图标大小
+      .setOrigin(0.5);
+
+    this.soundButton.add([bg, icon]);
+    this.soundButton.setData('icon', icon); // 保存图标引用以便后续更新
+
+    // 设置交互
+    this.soundButton.setInteractive({
+      hitArea: new Phaser.Geom.Rectangle(-30, -30, 60, 60),
+      hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+      useHandCursor: true,
+    });
+
+    this.soundButton.on('pointerup', () => this.toggleSound());
+  }
+
+  toggleSound() {
+    this.isMuted = !this.isMuted;
+
+    // 保存到localStorage
+    localStorage.setItem('bgm_muted', String(this.isMuted));
+
+    // 更新图标(使用图片纹理)
+    const icon = this.soundButton?.getData('icon') as Phaser.GameObjects.Image;
+    if (icon) {
+      const newTexture = this.isMuted ? 'sound-off' : 'sound-on';
+      icon.setTexture(newTexture);
+    }
+
+    // 控制BGM播放
+    const bgm = this.sound.get('bgm');
+    if (bgm) {
+      if (this.isMuted) {
+        bgm.pause();
+      } else {
+        bgm.resume();
+      }
+    }
   }
 
   drawSlotArea() {
@@ -789,6 +861,9 @@ export default class GameScene extends Phaser.Scene {
           // 所有方块创建完毕后，更新状态并播放入场动画
           this.updateTileClickability();
           this.animateTilesEntry();
+
+          // 通知 React 组件游戏已准备完成，可以隐藏 loading 骨架屏
+          window.dispatchEvent(new CustomEvent('GAME_READY'));
 
           // Analytics
           Analytics.startSession();
