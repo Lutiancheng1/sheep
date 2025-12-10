@@ -91,7 +91,12 @@ export const AdPlayer: React.FC<AdPlayerProps> = ({
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center animate-fadeIn">
+    <div
+      className="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center animate-fadeIn"
+      onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+      onPointerUp={(e) => e.stopPropagation()}
+    >
       {/* Video Container */}
       <div className="relative w-full h-full max-w-md mx-auto bg-black flex items-center justify-center">
         <video
@@ -139,8 +144,18 @@ export const AdPlayer: React.FC<AdPlayerProps> = ({
 
         {/* Confirmation Overlay */}
         {showConfirm && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fadeIn">
-            <div className="bg-white/10 border border-white/20 rounded-2xl p-6 w-80 text-center shadow-2xl backdrop-blur-md">
+          <div
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fadeIn"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+          >
+            <div
+              className="bg-white/10 border border-white/20 rounded-2xl p-6 w-80 text-center shadow-2xl backdrop-blur-md"
+              onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+              onPointerUp={(e) => e.stopPropagation()}
+            >
               <h3 className="text-white text-xl font-bold mb-2">放弃复活？</h3>
               <p className="text-white/70 mb-6 text-sm">
                 观看完整广告才能获得复活机会，确定要关闭吗？
