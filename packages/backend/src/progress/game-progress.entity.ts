@@ -7,6 +7,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { User } from '../users/user.entity';
+import { Level } from '../levels/level.entity';
 
 @Entity()
 export class GameProgress {
@@ -21,7 +22,11 @@ export class GameProgress {
   user: User;
 
   @Column()
-  levelId: string;
+  levelUuid: string; // 使用 UUID 而非 levelId
+
+  @ManyToOne(() => Level)
+  @JoinColumn({ name: 'levelUuid' })
+  level: Level;
 
   @Column()
   status: string; // 'completed', 'failed'

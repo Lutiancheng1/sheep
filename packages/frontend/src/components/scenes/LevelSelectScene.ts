@@ -74,20 +74,12 @@ export default class LevelSelectScene extends Phaser.Scene {
         const response = await api.getLevels(true); // excludeData=true
         const levels = Array.isArray(response) ? response : [];
 
-        // 按sortOrder排序,如果sortOrder不存在则按levelId数字排序(向后兼容)
+        // 按sortOrder排序
         levels.sort((a: any, b: any) => {
           // 优先使用sortOrder
           const sortA = typeof a.sortOrder === 'number' ? a.sortOrder : 9999;
           const sortB = typeof b.sortOrder === 'number' ? b.sortOrder : 9999;
-
-          if (sortA !== sortB) {
-            return sortA - sortB;
-          }
-
-          // sortOrder相同时,按levelId数字排序
-          const idA = parseInt(a.levelId.split('-')[1] || '0');
-          const idB = parseInt(b.levelId.split('-')[1] || '0');
-          return idA - idB;
+          return sortA - sortB;
         });
 
         const startY = 260;
@@ -97,35 +89,38 @@ export default class LevelSelectScene extends Phaser.Scene {
         const startX = 375 - gapX; // Center is 375. Left is 375-220=155. Right is 375+220=595.
 
         // 从API获取已完成关卡并计算解锁列表
-        const completedLevels = await api.getUnlockedLevels();
+        const unlockedResponse = await api.getUnlockedLevels();
 
         // 根据已完成关卡计算解锁列表
         let unlockedLevels: string[];
         if (levels.length === 0) {
           unlockedLevels = [];
-        } else if (completedLevels.length === 0) {
+        } else if (unlockedResponse.length === 0) {
           // 新用户,只解锁第一关
-          unlockedLevels = [levels[0].levelId];
-        } else {
-          // 找到已完成关卡中在排序列表中的最大索引
-          const completedIndices = completedLevels
-            .map((levelId: string) => levels.findIndex((l: any) => l.levelId === levelId))
+          unlockedLevels = [levels[0].id];
+        } else if (Array.isArray(unlockedResponse)) {
+          // 将后端返回的 UUID 列表映射为索引
+          const unlockedIndices = unlockedResponse
+            .map((uuid: string) => levels.findIndex((l: any) => l.id === uuid))
             .filter((idx: number) => idx !== -1);
 
-          if (completedIndices.length === 0) {
-            unlockedLevels = [levels[0].levelId];
+          if (unlockedIndices.length === 0) {
+            unlockedLevels = [levels[0].id];
           } else {
-            const maxCompletedIndex = Math.max(...completedIndices);
+            const maxCompletedIndex = Math.max(...unlockedIndices);
             const unlockedCount = Math.min(maxCompletedIndex + 2, levels.length);
-            unlockedLevels = levels.slice(0, unlockedCount).map((l: any) => l.levelId);
+            unlockedLevels = levels.slice(0, unlockedCount).map((l: any) => l.id);
           }
+        } else {
+          // Fallback if unlockedResponse is not an array, treat as no levels unlocked
+          unlockedLevels = [levels[0].id];
         }
 
         // 隐藏Loading文本
         loadingText.destroy();
 
         levels.forEach((level: any, index: number) => {
-          const isUnlocked = unlockedLevels.includes(level.levelId);
+          const isUnlocked = unlockedLevels.includes(level.id);
           const displayName = `${index + 1}`;
 
           const col = index % colCount;
@@ -134,7 +129,7 @@ export default class LevelSelectScene extends Phaser.Scene {
           const x = startX + col * gapX;
           const y = startY + row * gapY;
 
-          this.createLevelButton(x, y, displayName, level.levelId, isUnlocked, listContainer);
+          this.createLevelButton(x, y, displayName, level.id, isUnlocked, listContainer);
         });
 
         // 滚动逻辑 (支持鼠标滚轮和触摸拖拽 + 惯性)
@@ -248,7 +243,7 @@ export default class LevelSelectScene extends Phaser.Scene {
     x: number,
     y: number,
     text: string,
-    levelId: string,
+    id: string,
     isUnlocked: boolean,
     parent: Phaser.GameObjects.Container,
   ) {
@@ -281,7 +276,7 @@ export default class LevelSelectScene extends Phaser.Scene {
       container.setInteractive({ useHandCursor: true });
 
       container.on('pointerdown', () => {
-        this.scene.start('GameScene', { levelId });
+        this.scene.start('GameScene', { id });
       });
 
       container.on('pointerover', () => {

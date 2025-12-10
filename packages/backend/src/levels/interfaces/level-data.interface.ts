@@ -2,7 +2,7 @@ export interface TileConfig {
   row: number;
   col: number;
   layer: number;
-  type: string;
+  type: string | null;
   x?: number;
   y?: number;
 }

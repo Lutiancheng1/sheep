@@ -76,10 +76,10 @@ export const api = {
     return this.request(`/levels/${id}`);
   },
 
-  async submitProgress(levelId: string, status: string, score: number) {
+  async submitProgress(levelUuid: string, status: string, score: number) {
     return this.request('/progress/submit', {
       method: 'POST',
-      body: JSON.stringify({ levelId, status, score }),
+      body: JSON.stringify({ levelUuid, status, score }),
     });
   },
 
@@ -95,8 +95,8 @@ export const api = {
     return this.request(`/leaderboard/global?limit=${limit}`);
   },
 
-  async getLevelLeaderboard(levelId: string, limit = 10) {
-    return this.request(`/leaderboard/level/${levelId}?limit=${limit}`);
+  async getLevelLeaderboard(levelUuid: string, limit = 10) {
+    return this.request(`/leaderboard/level/${levelUuid}?limit=${limit}`);
   },
 
   async getItemStatus() {

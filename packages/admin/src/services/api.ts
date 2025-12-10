@@ -66,10 +66,8 @@ api.interceptors.response.use(
 
 export interface Level {
   id: string;
-  levelId: string;
-  difficulty: number;
+  levelName?: string | null; // 关卡名称
   sortOrder?: number; // 关卡排序字段
-  displayOrder?: number; // 兼容字段
   status?: string; // 'draft' | 'published'
   data: {
     tiles: any[];
@@ -95,10 +93,10 @@ export const getUsers = async () => {
 };
 
 export const createLevel = async (levelData: {
-  levelId: string;
-  difficulty: number;
+  levelName?: string;
   data: any;
   status?: string;
+  sortOrder?: number;
 }) => {
   const response = await api.post('/levels', levelData);
   return response.data;
@@ -170,8 +168,8 @@ export const deleteUser = async (id: string) => {
 };
 
 // 批量发布/下架关卡
-export const batchPublish = async (levelIds: string[], status: 'published' | 'draft') => {
-  const response = await api.patch('/levels/batch/publish', { levelIds, status });
+export const batchPublish = async (ids: string[], status: 'published' | 'draft') => {
+  const response = await api.patch('/levels/batch/publish', { ids, status });
   return response.data;
 };
 
@@ -182,8 +180,8 @@ export const deleteLevel = async (levelId: string) => {
 };
 
 // 批量删除关卡
-export const batchDeleteLevels = async (levelIds: string[]) => {
-  const response = await api.delete('/levels/batch/delete', { data: { levelIds } });
+export const batchDeleteLevels = async (ids: string[]) => {
+  const response = await api.delete('/levels/batch/delete', { data: { ids } });
   return response.data;
 };
 

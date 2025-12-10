@@ -17,18 +17,18 @@ export class GameProgressService {
 
   async create(
     userId: string,
-    levelId: string,
+    levelUuid: string,
     status: string,
     score: number,
   ): Promise<GameProgress> {
     this.logger.log(
-      `保存游戏进度 - userId: ${userId}, levelId: ${levelId}, status: ${status}, score: ${score}`,
+      `保存游戏进度 - userId: ${userId}, levelUuid: ${levelUuid}, status: ${status}, score: ${score}`,
     );
 
     try {
       const progress = this.progressRepository.create({
         user: { id: userId }, // Map to user relation
-        levelId,
+        levelUuid,
         status,
         score,
       });
@@ -38,7 +38,7 @@ export class GameProgressService {
       if (status === 'completed') {
         // Update scores (handles best score logic and global accumulation)
         this.logger.log(`更新排行榜分数...`);
-        await this.leaderboardService.updateScores(userId, levelId, score);
+        await this.leaderboardService.updateScores(userId, levelUuid, score);
         this.logger.log(`排行榜分数更新完成`);
       }
 
@@ -60,11 +60,11 @@ export class GameProgressService {
     // 优化: 使用 DISTINCT 查询数据库，避免拉取所有记录
     const result = await this.progressRepository
       .createQueryBuilder('progress')
-      .select('DISTINCT progress.levelId', 'levelId')
+      .select('DISTINCT progress.levelUuid', 'levelUuid')
       .where('progress.userId = :userId', { userId })
       .andWhere('progress.status = :status', { status: 'completed' })
-      .getRawMany<{ levelId: string }>();
+      .getRawMany<{ levelUuid: string }>();
 
-    return result.map((row) => row.levelId);
+    return result.map((row) => row.levelUuid);
   }
 }

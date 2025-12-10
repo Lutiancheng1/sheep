@@ -140,7 +140,7 @@ export default function PhaserGame() {
       <Leaderboard
         isOpen={showLeaderboard}
         onClose={() => setShowLeaderboard(false)}
-        levelId={leaderboardLevelId}
+        levelUuid={leaderboardLevelId}
       />
 
       <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />

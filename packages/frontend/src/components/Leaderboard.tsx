@@ -11,10 +11,10 @@ interface LeaderboardEntry {
 interface LeaderboardProps {
   isOpen: boolean;
   onClose: () => void;
-  levelId?: string; // If provided, show level leaderboard, else global
+  levelUuid?: string; // Level UUID
 }
 
-const Leaderboard = ({ isOpen, onClose, levelId }: LeaderboardProps) => {
+const Leaderboard = ({ isOpen, onClose, levelUuid }: LeaderboardProps) => {
   const [data, setData] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'global' | 'level'>('global');
@@ -29,16 +29,16 @@ const Leaderboard = ({ isOpen, onClose, levelId }: LeaderboardProps) => {
     return () => {
       window.dispatchEvent(new Event('ENABLE_INPUT'));
     };
-  }, [isOpen, activeTab, levelId]);
+  }, [isOpen, activeTab, levelUuid]);
 
-  // Auto-switch to level tab if levelId is provided when opening
+  // Auto-switch to level tab if levelUuid is provided when opening
   useEffect(() => {
-    if (isOpen && levelId) {
+    if (isOpen && levelUuid) {
       setActiveTab('level');
-    } else if (isOpen && !levelId) {
+    } else if (isOpen && !levelUuid) {
       setActiveTab('global');
     }
-  }, [isOpen, levelId]);
+  }, [isOpen, levelUuid]);
 
   const fetchLeaderboard = async () => {
     setLoading(true);
@@ -46,8 +46,8 @@ const Leaderboard = ({ isOpen, onClose, levelId }: LeaderboardProps) => {
       let result;
       if (activeTab === 'global') {
         result = await getGlobalLeaderboard();
-      } else if (levelId) {
-        result = await getLevelLeaderboard(levelId);
+      } else if (levelUuid) {
+        result = await getLevelLeaderboard(levelUuid);
       }
       setData(result || []);
     } catch (error) {
@@ -93,7 +93,7 @@ const Leaderboard = ({ isOpen, onClose, levelId }: LeaderboardProps) => {
           >
             🌍 全局排行
           </button>
-          {levelId && (
+          {levelUuid && (
             <button
               onClick={() => setActiveTab('level')}
               className={`flex-1 py-2 rounded-xl font-bold transition-all ${

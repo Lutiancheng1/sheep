@@ -8,11 +8,8 @@ export class LevelsController {
   constructor(private readonly levelsService: LevelsService) {}
 
   @Get()
-  async findAll(
-    @Query('includeAll') includeAll?: string,
-    @Query('excludeData') excludeData?: string,
-  ) {
-    return this.levelsService.findAll(includeAll === 'true', excludeData === 'true');
+  async findAll(@Query('excludeData') excludeData?: string) {
+    return this.levelsService.findAll(excludeData === 'true');
   }
 
   @Get(':id')
@@ -23,11 +20,7 @@ export class LevelsController {
   // Admin only in real app, but open for now to seed data
   @Post()
   async create(@Body() createLevelDto: CreateLevelDto) {
-    return this.levelsService.create(
-      createLevelDto.levelId,
-      createLevelDto.data,
-      createLevelDto.difficulty,
-    );
+    return this.levelsService.create(createLevelDto.data, createLevelDto.levelName);
   }
 
   // 更新关卡(支持更新sortOrder等字段)
@@ -46,8 +39,8 @@ export class LevelsController {
 
   // 批量发布/下架
   @Patch('batch/publish')
-  async batchPublish(@Body() dto: { levelIds: string[]; status: 'published' | 'draft' }) {
-    return this.levelsService.batchUpdateStatus(dto.levelIds, dto.status);
+  async batchPublish(@Body() dto: { ids: string[]; status: 'published' | 'draft' }) {
+    return this.levelsService.batchUpdateStatus(dto.ids, dto.status);
   }
 
   // 删除关卡
@@ -58,7 +51,7 @@ export class LevelsController {
 
   // 批量删除
   @Delete('batch/delete')
-  async batchDelete(@Body() dto: { levelIds: string[] }) {
-    return this.levelsService.batchDelete(dto.levelIds);
+  async batchDelete(@Body() dto: { ids: string[] }) {
+    return this.levelsService.batchDelete(dto.ids);
   }
 }

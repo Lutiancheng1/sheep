@@ -72,11 +72,11 @@ export default class GameScene extends Phaser.Scene {
     this.load.audio('bgm', '/assets/bgm.mp3');
   }
 
-  private currentLevelId: string = 'level-1';
+  private currentLevelUuid: string = ''; // UUID
   private currentLevelNumber: number = 1; // 当前关卡在排序后的序号
 
-  init(data: { levelId: string }) {
-    this.currentLevelId = data.levelId || 'level-1';
+  init(data: { id: string }) {
+    this.currentLevelUuid = data.id || '';
 
     // 异步获取所有关卡并计算当前关卡序号
     // 优化: 使用 excludeData=true 只获取列表元数据,避免下载所有关卡的完整 tile 数据
@@ -89,14 +89,11 @@ export default class GameScene extends Phaser.Scene {
         levels.sort((a: any, b: any) => {
           const sortA = typeof a.sortOrder === 'number' ? a.sortOrder : 9999;
           const sortB = typeof b.sortOrder === 'number' ? b.sortOrder : 9999;
-          if (sortA !== sortB) return sortA - sortB;
-          const idA = parseInt(a.levelId.split('-')[1] || '0');
-          const idB = parseInt(b.levelId.split('-')[1] || '0');
-          return idA - idB;
+          return sortA - sortB;
         });
 
         // 找到当前关卡的位置
-        const currentIndex = levels.findIndex((l: any) => l.levelId === this.currentLevelId);
+        const currentIndex = levels.findIndex((l: any) => l.id === this.currentLevelUuid);
         this.currentLevelNumber = currentIndex !== -1 ? currentIndex + 1 : 1;
 
         // 更新显示(如果infoText已经创建)
@@ -248,7 +245,7 @@ export default class GameScene extends Phaser.Scene {
         this.createPropButtons();
       });
 
-    this.loadLevel(this.currentLevelId);
+    this.loadLevel(this.currentLevelUuid);
   }
 
   createTopUI() {
@@ -743,7 +740,7 @@ export default class GameScene extends Phaser.Scene {
     });
 
     this.createMenuButton(375, btnStart + btnGap, '重新开始', 0xe67e22, () => {
-      this.scene.restart({ levelId: this.currentLevelId });
+      this.scene.restart({ id: this.currentLevelUuid });
     });
 
     this.createMenuButton(375, btnStart + btnGap * 2, '退出关卡', 0xc0392b, () => {
@@ -783,10 +780,10 @@ export default class GameScene extends Phaser.Scene {
     return btn;
   }
 
-  async loadLevel(levelId: string) {
+  async loadLevel(levelUuid: string) {
     try {
       // 使用后端 API 替代本地 JSON
-      const levelData = await api.getLevel(levelId);
+      const levelData = await api.getLevel(levelUuid);
       if (levelData && levelData.data) {
         this.createLevelFromConfig(levelData.data);
       } else {
@@ -867,7 +864,7 @@ export default class GameScene extends Phaser.Scene {
 
           // Analytics
           Analytics.startSession();
-          Analytics.logEvent('LEVEL_START', { levelId: this.currentLevelId });
+          Analytics.logEvent('LEVEL_START', { levelUuid: this.currentLevelUuid });
         }
       },
     });
@@ -1123,40 +1120,33 @@ export default class GameScene extends Phaser.Scene {
   }
 
   gameOver() {
-    Analytics.logEvent('LEVEL_FAIL', { levelId: this.currentLevelId, score: this.score });
+    Analytics.logEvent('LEVEL_FAIL', { levelUuid: this.currentLevelUuid, score: this.score });
     this.createPopup('💔 游戏失败', '#FF6B6B', '重新开始');
   }
   async victory() {
-    let nextLevelId = '';
+    let nextLevelUuid: string | null = null;
     try {
       // 获取所有已发布的关卡并按sortOrder排序
-      const allLevels = await api.getLevels();
+      const response = await api.getLevels();
+      const allLevels = Array.isArray(response) ? response : [];
 
-      // 按sortOrder排序(与LevelSelectScene一致)
+      // 按sortOrder排序
       allLevels.sort((a: any, b: any) => {
         const sortA = typeof a.sortOrder === 'number' ? a.sortOrder : 9999;
         const sortB = typeof b.sortOrder === 'number' ? b.sortOrder : 9999;
-
-        if (sortA !== sortB) {
-          return sortA - sortB;
-        }
-
-        const idA = parseInt(a.levelId.split('-')[1] || '0');
-        const idB = parseInt(b.levelId.split('-')[1] || '0');
-        return idA - idB;
+        return sortA - sortB;
       });
 
-      // 找到当前关卡在排序后列表中的位置
-      const currentIndex = allLevels.findIndex((l: any) => l.levelId === this.currentLevelId);
+      // 找到下一关
+      const currentIndex = allLevels.findIndex((l: any) => l.id === this.currentLevelUuid);
 
-      // 如果找到了且不是最后一关,则解锁下一关
-      if (currentIndex !== -1 && currentIndex < allLevels.length - 1) {
-        nextLevelId = allLevels[currentIndex + 1].levelId;
+      if (currentIndex !== -1 && currentIndex + 1 < allLevels.length) {
+        nextLevelUuid = allLevels[currentIndex + 1].id;
       }
 
-      // Submit progress to backend
-      await api.submitProgress(this.currentLevelId, 'completed', this.score);
-      Analytics.logEvent('LEVEL_COMPLETE', { levelId: this.currentLevelId, score: this.score });
+      // 提交进度
+      await api.submitProgress(this.currentLevelUuid, 'completed', this.score);
+      Analytics.logEvent('LEVEL_COMPLETE', { levelUuid: this.currentLevelUuid, score: this.score });
 
       // Show success modal
       console.log('Progress saved to API');
@@ -1166,7 +1156,7 @@ export default class GameScene extends Phaser.Scene {
       console.error('Failed to save progress', e);
     }
 
-    this.createPopup('🎉 恭喜过关', '#2E8B57', '再玩一次', nextLevelId);
+    this.createPopup('🎉 恭喜过关', '#2E8B57', '再玩一次', nextLevelUuid);
   }
 
   updatePropButtonText(text: string, count: number) {
@@ -1188,7 +1178,7 @@ export default class GameScene extends Phaser.Scene {
     });
   }
 
-  createPopup(title: string, color: string, btnText: string, nextLevelId?: string) {
+  createPopup(title: string, color: string, btnText: string, nextLevelUuid?: string | null) {
     const overlay = this.add.rectangle(375, 667, 750, 1334, 0x000000, 0.7);
     overlay.setDepth(2000);
     overlay.setInteractive();
@@ -1220,13 +1210,13 @@ export default class GameScene extends Phaser.Scene {
 
     const btnY = 700;
 
-    if (nextLevelId && nextLevelId !== 'level-21') {
+    if (nextLevelUuid) {
       this.createMenuButton(375, btnY, '下一关', 0x2e8b57, () => {
-        this.scene.restart({ levelId: nextLevelId });
+        this.scene.restart({ id: nextLevelUuid });
       });
     } else {
       this.createMenuButton(375, btnY, btnText, 0xe67e22, () => {
-        this.scene.restart({ levelId: this.currentLevelId });
+        this.scene.restart({ id: this.currentLevelUuid });
       });
     }
 

@@ -41,18 +41,11 @@ const LevelList: React.FC = () => {
     setLoading(true);
     try {
       const data = await getLevels(true); // 管理后台查看所有关卡(包括草稿)
-      // 按sortOrder排序,如果sortOrder不存在则按levelId数字排序
+      // 按sortOrder排序
       const sorted = data.sort((a, b) => {
         const sortA = typeof a.sortOrder === 'number' ? a.sortOrder : 9999;
         const sortB = typeof b.sortOrder === 'number' ? b.sortOrder : 9999;
-
-        if (sortA !== sortB) {
-          return sortA - sortB;
-        }
-
-        const numA = parseInt(a.levelId.replace('level-', '')) || 0;
-        const numB = parseInt(b.levelId.replace('level-', '')) || 0;
-        return numA - numB;
+        return sortA - sortB;
       });
       setLevels(sorted);
     } catch (error) {
@@ -62,9 +55,9 @@ const LevelList: React.FC = () => {
     }
   };
 
-  const handleTogglePublish = async (levelId: string) => {
+  const handleTogglePublish = async (id: string) => {
     try {
-      await togglePublish(levelId);
+      await togglePublish(id);
       message.success('发布状态已更新');
       fetchLevels();
     } catch (error) {
@@ -90,17 +83,17 @@ const LevelList: React.FC = () => {
     }
   };
 
-  const handleDelete = async (levelId: string) => {
+  const handleDelete = async (id: string) => {
     Modal.confirm({
       title: '确认删除',
       icon: <ExclamationCircleOutlined />,
-      content: `确定要删除关卡 ${levelId} 吗?此操作不可撤销!`,
+      content: `确定要删除关卡 ${id} 吗?此操作不可撤销!`,
       okText: '确认删除',
       okType: 'danger',
       cancelText: '取消',
       onOk: async () => {
         try {
-          await deleteLevel(levelId);
+          await deleteLevel(id);
           message.success('删除成功');
           fetchLevels();
         } catch (error) {
@@ -153,15 +146,15 @@ const LevelList: React.FC = () => {
       return;
     }
 
-    const oldIndex = levels.findIndex((l) => l.levelId === active.id);
-    const newIndex = levels.findIndex((l) => l.levelId === over.id);
+    const oldIndex = levels.findIndex((l) => l.id === active.id);
+    const newIndex = levels.findIndex((l) => l.id === over.id);
 
     const newLevels = arrayMove(levels, oldIndex, newIndex);
     setLevels(newLevels);
 
     try {
       await Promise.all(
-        newLevels.map((level, index) => updateLevel(level.levelId, { sortOrder: index + 1 })),
+        newLevels.map((level, index) => updateLevel(level.id, { sortOrder: index + 1 })),
       );
       message.success('排序已保存');
     } catch (error) {
@@ -204,26 +197,14 @@ const LevelList: React.FC = () => {
       render: () => <HolderOutlined style={{ cursor: 'move', fontSize: 16, color: '#999' }} />,
     },
     {
-      title: '关卡 ID',
-      dataIndex: 'levelId',
-      key: 'levelId',
-      render: (text: string) => (
-        <Button type="link" onClick={() => navigate(`/levels/${text}`)}>
-          {text}
+      title: '关卡名称',
+      dataIndex: 'levelName',
+      key: 'levelName',
+      render: (text: string | null, record: Level) => (
+        <Button type="link" onClick={() => navigate(`/levels/${record.id}`)}>
+          {text || `关卡-${record.id.slice(0, 6)}`}
         </Button>
       ),
-    },
-    {
-      title: '难度',
-      dataIndex: 'difficulty',
-      key: 'difficulty',
-      render: (diff: number) => {
-        let color = 'green';
-        if (diff > 5) color = 'blue';
-        if (diff > 10) color = 'orange';
-        if (diff > 15) color = 'red';
-        return <Tag color={color}>难度 {diff}</Tag>;
-      },
     },
     {
       title: '状态',
@@ -247,13 +228,13 @@ const LevelList: React.FC = () => {
       key: 'actions',
       render: (_: any, record: Level) => (
         <Space size="middle">
-          <Button type="primary" size="small" onClick={() => navigate(`/levels/${record.levelId}`)}>
+          <Button type="primary" size="small" onClick={() => navigate(`/levels/${record.id}`)}>
             编辑
           </Button>
-          <Button size="small" onClick={() => handleTogglePublish(record.levelId)}>
+          <Button size="small" onClick={() => handleTogglePublish(record.id)}>
             {record.status === 'published' ? '下架' : '发布'}
           </Button>
-          <Button danger size="small" onClick={() => handleDelete(record.levelId)}>
+          <Button danger size="small" onClick={() => handleDelete(record.id)}>
             删除
           </Button>
         </Space>
@@ -289,15 +270,12 @@ const LevelList: React.FC = () => {
       )}
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext
-          items={levels.map((l) => l.levelId)}
-          strategy={verticalListSortingStrategy}
-        >
+        <SortableContext items={levels.map((l) => l.id)} strategy={verticalListSortingStrategy}>
           <Table
             rowSelection={rowSelection}
             dataSource={levels}
             columns={columns}
-            rowKey="levelId"
+            rowKey="id"
             loading={loading}
             pagination={{ pageSize: 20 }}
             components={{

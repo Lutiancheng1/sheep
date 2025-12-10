@@ -11,82 +11,48 @@ export class LevelsService {
     private levelsRepository: Repository<Level>,
   ) {}
 
-  async findAll(includeAll = false, excludeData = false): Promise<Level[]> {
-    // 前端只看到已发布的关卡,管理后台可以看到所有关卡
-    const where = includeAll ? {} : { status: 'published' };
-
-    // 如果excludeData=true,不返回data字段(优化列表接口性能)
-    const selectFields = excludeData
-      ? (['id', 'levelId', 'difficulty', 'status', 'sortOrder', 'createdAt'] as (keyof Level)[])
+  async findAll(excludeData = false): Promise<Level[]> {
+    // 前端只看到已发布的关卡
+    const selectFields: (keyof Level)[] | undefined = excludeData
+      ? ['id', 'levelName', 'sortOrder', 'status', 'createdAt']
       : undefined;
 
-    // 按sortOrder优先排序,如果sortOrder相同则按levelId排序
+    // 按sortOrder优先排序
     return this.levelsRepository.find({
-      where,
-      order: { sortOrder: 'ASC', levelId: 'ASC' },
-      ...(selectFields && { select: selectFields }),
+      select: selectFields,
+      where: { status: 'published' },
+      order: { sortOrder: 'ASC', createdAt: 'ASC' },
     });
   }
 
-  async findOne(levelId: string): Promise<Level | null> {
-    return this.levelsRepository.findOne({ where: { levelId } });
+  async findOne(id: string): Promise<Level | null> {
+    return this.levelsRepository.findOne({ where: { id } });
+  }
+
+  async findBySortOrder(sortOrder: number): Promise<Level | null> {
+    return this.levelsRepository.findOne({ where: { sortOrder } });
   }
 
   async create(
-    levelId: string,
     data: LevelData,
-    difficulty: number,
+    levelName?: string,
     status: 'draft' | 'published' = 'draft',
+    sortOrder?: number,
   ): Promise<Level> {
-    try {
-      let existing = await this.levelsRepository.findOne({
-        where: { levelId },
-      });
-
-      if (!existing) {
-        try {
-          const level = this.levelsRepository.create({
-            levelId,
-            data,
-            difficulty,
-            status,
-          });
-          return await this.levelsRepository.save(level);
-        } catch (err: unknown) {
-          if (
-            typeof err === 'object' &&
-            err !== null &&
-            'code' in err &&
-            (err as { code: string }).code === '23505'
-          ) {
-            // Postgres duplicate key error code
-            existing = await this.levelsRepository.findOne({
-              where: { levelId },
-            });
-          } else {
-            throw err;
-          }
-        }
-      }
-
-      if (existing) {
-        existing.data = data;
-        existing.difficulty = difficulty;
-        return await this.levelsRepository.save(existing);
-      }
-
-      throw new Error('Could not create or update level');
-    } catch (error) {
-      console.error('Error creating/updating level:', error);
-      throw error;
-    }
+    const level = this.levelsRepository.create({
+      levelName: levelName || null,
+      data,
+      status,
+      sortOrder: sortOrder || 0,
+    });
+    return await this.levelsRepository.save(level);
   }
 
   async updateLevel(
-    levelId: string,
-    updates: Partial<{ data: LevelData; difficulty: number; sortOrder: number; status: string }>,
+    id: string,
+    updates: Partial<{ data: LevelData; levelName: string; sortOrder: number; status: string }>,
   ): Promise<Level> {
-    const level = await this.levelsRepository.findOne({ where: { levelId } });
+    const level = await this.levelsRepository.findOne({ where: { id } });
     if (!level) {
       throw new Error('Level not found');
     }
@@ -97,8 +63,8 @@ export class LevelsService {
     return await this.levelsRepository.save(level);
   }
 
-  async togglePublish(levelId: string): Promise<Level> {
-    const level = await this.levelsRepository.findOne({ where: { levelId } });
+  async togglePublish(id: string): Promise<Level> {
+    const level = await this.levelsRepository.findOne({ where: { id } });
     if (!level) {
       throw new Error('Level not found');
     }
@@ -108,12 +74,10 @@ export class LevelsService {
 
   // 批量更新状态
   async batchUpdateStatus(
-    levelIds: string[],
+    ids: string[],
     status: 'published' | 'draft',
   ): Promise<{ success: boolean; updated: number }> {
-    const levels = await this.levelsRepository.find({
-      where: levelIds.map((levelId) => ({ levelId })),
-    });
+    const levels = await this.levelsRepository.findByIds(ids);
     levels.forEach((level) => {
       level.status = status;
     });
@@ -122,8 +86,8 @@ export class LevelsService {
   }
 
   // 删除关卡
-  async delete(levelId: string): Promise<{ success: boolean }> {
-    const level = await this.findOne(levelId);
+  async delete(id: string): Promise<{ success: boolean }> {
+    const level = await this.findOne(id);
     if (!level) {
       throw new Error('Level not found');
     }
@@ -132,10 +96,8 @@ export class LevelsService {
   }
 
   // 批量删除
-  async batchDelete(levelIds: string[]): Promise<{ success: boolean; deleted: number }> {
-    const levels = await this.levelsRepository.find({
-      where: levelIds.map((levelId) => ({ levelId })),
-    });
+  async batchDelete(ids: string[]): Promise<{ success: boolean; deleted: number }> {
+    const levels = await this.levelsRepository.findByIds(ids);
     await this.levelsRepository.remove(levels);
     return { success: true, deleted: levels.length };
   }

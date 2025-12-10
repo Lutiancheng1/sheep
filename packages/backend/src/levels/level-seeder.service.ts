@@ -35,14 +35,27 @@ export class LevelSeederService implements OnModuleInit {
     const levelsCount = 20;
 
     for (let i = 1; i <= levelsCount; i++) {
-      const levelId = `level-${i}`;
-      console.log(`Seeding/Updating ${levelId}...`);
+      const displayName = `第${i}关`;
+      console.log(`Seeding/Updating level ${i}...`);
 
       const config = this.getLevelConfig(i);
       const types = this.getTileTypesForLevel();
       const levelData = this.generateLevelData(config, types);
 
-      await this.levelsService.create(levelId, levelData, i, 'published');
+      // 查找是否已存在相同 sortOrder 的关卡
+      const existing = await this.levelsService.findBySortOrder(i);
+
+      if (existing) {
+        // 更新现有关卡
+        await this.levelsService.updateLevel(existing.id, {
+          levelName: displayName,
+          data: levelData,
+          status: 'published',
+        });
+      } else {
+        // 创建新关卡
+        await this.levelsService.create(levelData, displayName, 'published', i);
+      }
     }
   }
 

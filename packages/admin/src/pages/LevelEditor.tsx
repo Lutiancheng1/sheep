@@ -58,18 +58,18 @@ const LevelEditor: React.FC = () => {
       fetchLevel(id);
     } else {
       form.setFieldsValue({
-        levelId: 'level-new',
+        levelName: '', // 新建时默认为空，可自行填写关卡名称
         displayOrder: 1,
       });
     }
   }, [id]);
 
-  const fetchLevel = async (levelId: string) => {
+  const fetchLevel = async (id: string) => {
     try {
-      const level = await getLevel(levelId);
+      const level = await getLevel(id);
       form.setFieldsValue({
-        levelId: level.levelId,
-        displayOrder: level.displayOrder || level.difficulty || 1,
+        levelName: level.levelName,
+        displayOrder: level.sortOrder || 1,
       });
       setTiles(level.data.tiles || []);
       setStatus(level.status || 'draft');
@@ -82,9 +82,8 @@ const LevelEditor: React.FC = () => {
     try {
       const values = await form.validateFields();
       const levelData = {
-        levelId: values.levelId,
-        displayOrder: values.displayOrder,
-        difficulty: values.displayOrder, // 兼容旧字段
+        levelName: values.levelName,
+        sortOrder: values.displayOrder,
         status: status,
         data: {
           tiles: tiles,
@@ -102,13 +101,16 @@ const LevelEditor: React.FC = () => {
 
   const handleTogglePublish = async () => {
     try {
-      const values = await form.validateFields();
+      if (!id || id === 'new') {
+        message.error('请先保存关卡');
+        return;
+      }
       // 先保存
       await handleSave();
       // 再切换发布状态
-      await togglePublish(values.levelId);
+      await togglePublish(id);
       message.success(`已${status === 'published' ? '下架' : '发布'}`);
-      fetchLevel(values.levelId);
+      fetchLevel(id);
     } catch (error) {
       message.error('操作失败');
     }
@@ -131,13 +133,13 @@ const LevelEditor: React.FC = () => {
       <Col span={10} style={{ height: '100%', overflowY: 'auto' }}>
         <Card title="关卡设置">
           <Form form={form} layout="vertical">
-            <Form.Item name="levelId" label="关卡 ID" rules={[{ required: true }]}>
-              <Input disabled={!!id && id !== 'new'} />
+            <Form.Item name="levelName" label="关卡名称" tooltip="可选，如'第一关'、'新手教程'等">
+              <Input placeholder="输入关卡名称（可选）" />
             </Form.Item>
             <Form.Item
               name="displayOrder"
               label="关卡序号"
-              tooltip="用于控制关卡在列表中的显示顺序"
+              tooltip="用于控制关卡在列表中的显示顺序，数字越小越靠前"
               rules={[{ required: true }]}
             >
               <InputNumber min={1} max={999} placeholder="输入关卡序号" style={{ width: '100%' }} />

@@ -7,7 +7,7 @@ import { User } from './user.entity';
 import { GameProgress } from '../progress/game-progress.entity';
 import { UserLog } from '../user-logs/user-log.entity';
 
-interface UserWithStats extends User {
+export interface UserWithStats extends User {
   maxScore: number;
   currentLevel: number;
 }
@@ -92,29 +92,24 @@ export class UsersService {
       });
       const scores = await pipeline.exec();
 
-      // 3. 批量获取每个用户的最高通关关卡
+      // 3. 批量获取每个用户的最高通关关卡（通过 sortOrder 排序）
       const progressData = await this.gameProgressRepository
         .createQueryBuilder('progress')
+        .leftJoin('progress.level', 'level')
         .select('progress.userId', 'userId')
-        .addSelect('MAX(progress.levelId)', 'maxLevel')
+        .addSelect('MAX(level.sortOrder)', 'maxLevel')
         .where('progress.status = :status', { status: 'completed' })
         .andWhere('progress.userId IN (:...userIds)', {
           userIds: users.map((u) => u.id),
         })
         .groupBy('progress.userId')
-        .getRawMany<{ userId: string; maxLevel: string }>();
+        .getRawMany<{ userId: string; maxLevel: number | null }>();
 
       // 创建 userId -> maxLevel 映射
       const levelMap = new Map<string, number>();
       progressData.forEach((item) => {
-        // levelId 在数据库中是 varchar，格式可能是 "level-1", "level-2" 等
-        // 提取数字部分
-        const match = item.maxLevel.match(/\d+/);
-        if (match) {
-          const levelNum = parseInt(match[0], 10);
-          if (!isNaN(levelNum)) {
-            levelMap.set(item.userId, levelNum);
-          }
+        if (item.maxLevel) {
+          levelMap.set(item.userId, item.maxLevel);
         }
       });
 
