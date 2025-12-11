@@ -31,6 +31,7 @@ const LevelList: React.FC = () => {
   const [levels, setLevels] = useState<Level[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [pageSize, setPageSize] = useState(10);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -277,7 +278,15 @@ const LevelList: React.FC = () => {
             columns={columns}
             rowKey="id"
             loading={loading}
-            pagination={{ pageSize: 20 }}
+            pagination={{
+              pageSize: pageSize,
+              showSizeChanger: true,
+              showTotal: (total) => `共 ${total} 条`,
+              pageSizeOptions: ['10', '20', '50'],
+              onChange: (page, size) => setPageSize(size),
+            }}
+            scroll={{ y: 'calc(100vh - 400px)' }}
+            sticky
             components={{
               body: {
                 row: DraggableRow,

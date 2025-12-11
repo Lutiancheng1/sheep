@@ -54,6 +54,7 @@ const UserList: React.FC = () => {
   const [cleanupModalVisible, setCleanupModalVisible] = useState(false);
   const [cleanupPreview, setCleanupPreview] = useState<CleanupPreview | null>(null);
   const [cleaningup, setCleaningup] = useState(false);
+  const [pageSize, setPageSize] = useState(10);
 
   // Edit Items State
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -164,13 +165,6 @@ const UserList: React.FC = () => {
 
   const columns = [
     {
-      title: '用户 ID',
-      dataIndex: 'id',
-      key: 'id',
-      width: 300,
-      render: (text: string) => <span style={{ fontFamily: 'monospace' }}>{text}</span>,
-    },
-    {
       title: '用户名',
       dataIndex: 'username',
       key: 'username',
@@ -271,11 +265,14 @@ const UserList: React.FC = () => {
           rowKey="id"
           loading={loading}
           pagination={{
-            defaultPageSize: 10,
+            pageSize: pageSize,
             showSizeChanger: true,
             showTotal: (total) => `共 ${total} 条`,
+            pageSizeOptions: ['10', '20', '50'],
+            onChange: (_page, size) => setPageSize(size),
           }}
-          scroll={{ x: 800 }}
+          scroll={{ x: 800, y: 'calc(100vh - 450px)' }}
+          sticky
         />
       </Card>
 

@@ -11,6 +11,7 @@ const Breadcrumb: React.FC = () => {
     '/levels': '关卡管理',
     '/users': '用户管理',
     '/logs': '日志审计',
+    '/config': '系统配置',
   };
 
   const breadcrumbItems = useMemo(() => {

@@ -40,6 +40,7 @@ const UserLogs: React.FC = () => {
   const [userId, setUserId] = useState('');
   const [action, setAction] = useState('');
   const [userType, setUserType] = useState<'all' | 'guest' | 'normal'>('all');
+  const [pageSize, setPageSize] = useState(10);
 
   // 自动刷新状态
   const [autoRefresh, setAutoRefresh] = useState(false);
@@ -250,11 +251,14 @@ const UserLogs: React.FC = () => {
           rowKey="id"
           loading={loading}
           pagination={{
-            pageSize: 20,
+            pageSize: pageSize,
             showSizeChanger: true,
             showTotal: (total) => `共 ${total} 条`,
+            pageSizeOptions: ['10', '20', '50'],
+            onChange: (_page, size) => setPageSize(size),
           }}
-          scroll={{ x: 1000 }}
+          scroll={{ x: 1000, y: 'calc(100vh - 550px)' }}
+          sticky
         />
       </Space>
     </Card>

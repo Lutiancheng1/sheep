@@ -5,17 +5,20 @@ import { AdminSeeder } from './admin/admin.seeder';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  // CORS 配置 - 支持跨域请求
+  // CORS 配置 - 开发环境允许所有来源，生产环境限制具体域名
+  const allowedOrigins =
+    process.env.NODE_ENV === 'production'
+      ? [
+          'http://8.148.255.174:4000', // 生产环境前端
+          'http://8.148.255.174:4001', // 生产环境后端
+          'http://8.148.255.174:4002', // 生产环境管理后台
+        ]
+      : true; // 开发环境允许所有
+
   app.enableCors({
-    origin: [
-      'http://localhost:4000',
-      'http://localhost:4001',
-      'http://8.148.255.174:4000', // 生产环境前端
-      'http://8.148.255.174:4001', // 生产环境后端
-      'http://8.148.255.174:4002', // 生产环境管理后台
-    ],
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-API-Key'], // 添加 X-API-Key
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-API-Key'],
     credentials: true,
     preflightContinue: false,
     optionsSuccessStatus: 204,

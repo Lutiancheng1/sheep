@@ -5,7 +5,7 @@ import { LogoutOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { logout } from '../services/api';
 import Breadcrumb from '../components/Breadcrumb';
 
-const { Header, Content, Sider } = Layout;
+const { Content, Sider } = Layout;
 
 const MainLayout: React.FC = () => {
   const {
@@ -50,13 +50,14 @@ const MainLayout: React.FC = () => {
   };
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout style={{ height: '100vh', overflow: 'hidden' }}>
       <Sider
         breakpoint="lg"
         collapsedWidth="0"
         collapsible
         collapsed={collapsed}
         onCollapse={(value) => setCollapsed(value)}
+        style={{ display: 'flex', flexDirection: 'column' }}
       >
         <div
           style={{
@@ -84,31 +85,42 @@ const MainLayout: React.FC = () => {
           selectedKeys={[location.pathname]}
           items={items}
           onClick={({ key }) => navigate(key)}
+          style={{ flex: 1 }}
         />
+        {/* 退出登录按钮 - 固定在最底部 */}
+        <div style={{ padding: '16px' }}>
+          <Button
+            ghost
+            block
+            icon={<LogoutOutlined />}
+            onClick={handleLogout}
+            style={{ height: 40, color: '#fff', borderColor: 'rgba(255, 255, 255, 0.3)' }}
+          >
+            {!collapsed && '退出登录'}
+          </Button>
+        </div>
       </Sider>
-      <Layout>
-        <Header
+      <Layout style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Content
           style={{
-            padding: '0 24px',
-            background: colorBgContainer,
+            margin: '24px',
             display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            flex: 1,
           }}
         >
-          <div style={{ fontSize: '18px', fontWeight: 'bold' }}>管理后台</div>
-          <Button icon={<LogoutOutlined />} onClick={handleLogout}>
-            退出登录
-          </Button>
-        </Header>
-        <Content style={{ margin: '24px 16px 0' }}>
           <Breadcrumb />
           <div
             style={{
               padding: 24,
-              minHeight: 360,
               background: colorBgContainer,
               borderRadius: borderRadiusLG,
+              marginTop: 16,
+              flex: 1,
+              overflow: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
             }}
           >
             <Outlet />
