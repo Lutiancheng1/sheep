@@ -12,15 +12,15 @@ export class LevelsService {
   ) {}
 
   async findAll(excludeData = false): Promise<Level[]> {
-    // 前端只看到已发布的关卡
+    // Admin后台需要看到所有关卡（包括草稿）
+    // 前端通过单独的API只获取已发布的关卡
     const selectFields: (keyof Level)[] | undefined = excludeData
       ? ['id', 'levelName', 'sortOrder', 'status', 'createdAt']
       : undefined;
 
-    // 按sortOrder优先排序
+    // 按sortOrder优先排序，返回所有关卡（不过滤status）
     return this.levelsRepository.find({
       select: selectFields,
-      where: { status: 'published' },
       order: { sortOrder: 'ASC', createdAt: 'ASC' },
     });
   }

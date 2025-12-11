@@ -25,7 +25,9 @@ export class AuthService {
   }
 
   async login(user: { id: string; username: string }) {
-    const payload = { username: user.username, sub: user.id };
+    // 为管理员用户添加role字段
+    const role = user.username === 'admin' ? 'admin' : 'user';
+    const payload = { username: user.username, sub: user.id, role };
     try {
       await this.userLogsService.logAction(user.id, 'LOGIN', {
         username: user.username,

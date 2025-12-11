@@ -72,7 +72,10 @@ export default class LevelSelectScene extends Phaser.Scene {
       try {
         // 优化: 使用excludeData=true,只获取列表必要字段,减少响应体积
         const response = await api.getLevels(true); // excludeData=true
-        const levels = Array.isArray(response) ? response : [];
+        let levels = Array.isArray(response) ? response : [];
+
+        // 前端只显示已发布的关卡（过滤掉草稿）
+        levels = levels.filter((level: any) => level.status === 'published');
 
         // 按sortOrder排序
         levels.sort((a: any, b: any) => {

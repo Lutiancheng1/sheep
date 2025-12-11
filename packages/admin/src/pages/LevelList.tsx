@@ -283,7 +283,7 @@ const LevelList: React.FC = () => {
               showSizeChanger: true,
               showTotal: (total) => `共 ${total} 条`,
               pageSizeOptions: ['10', '20', '50'],
-              onChange: (page, size) => setPageSize(size),
+              onChange: (_page, size) => setPageSize(size),
             }}
             scroll={{ y: 'calc(100vh - 400px)' }}
             sticky

@@ -45,34 +45,6 @@ export default class GameScene extends Phaser.Scene {
     super({ key: 'GameScene' });
   }
 
-  preload() {
-    // 加载图标素材
-    this.load.image('carrot', '/icons/carrot.png');
-    this.load.image('wheat', '/icons/wheat.png');
-    this.load.image('wood', '/icons/wood.png');
-    this.load.image('grass', '/icons/grass.png');
-    this.load.image('stone', '/icons/stone.png');
-    this.load.image('coin', '/icons/coin.png');
-    this.load.image('shovel', '/icons/shovel.png');
-    this.load.image('corn', '/icons/corn.png');
-    this.load.image('milk', '/icons/milk.png');
-    this.load.image('egg', '/icons/egg.png');
-    this.load.image('wool', '/icons/wool.png');
-    this.load.image('apple', '/icons/apple.png');
-    this.load.image('pumpkin', '/icons/pumpkin.png');
-    this.load.image('flower', '/icons/flower.png');
-
-    // 加载设置图标(SVG格式)
-    this.load.svg('settings', '/icons/settings.svg', { scale: 0.2 }); // 提高分辨率避免模糊
-
-    // 加载声音图标(SVG格式)
-    this.load.svg('sound-on', '/icons/sound-on.svg', { scale: 0.5 }); // 提高分辨率
-    this.load.svg('sound-off', '/icons/sound-off.svg', { scale: 0.5 });
-
-    // 加载背景音乐
-    this.load.audio('bgm', '/assets/bgm.mp3');
-  }
-
   private currentLevelUuid: string = ''; // UUID
   private currentLevelNumber: number = 1; // 当前关卡在排序后的序号
 
@@ -1011,6 +983,9 @@ export default class GameScene extends Phaser.Scene {
 
     if (sprites.length === 0) return;
 
+    // 禁用输入，防止动画期间点击导致卡住
+    this.input.enabled = false;
+
     this.tweens.add({
       targets: sprites,
       y: (target: Phaser.GameObjects.Container) => {
@@ -1018,15 +993,18 @@ export default class GameScene extends Phaser.Scene {
         const tile = this.tiles.get(tileId);
         return tile ? tile.position.y : target.y;
       },
-      alpha: 1, // 淡入效果
-      duration: 800, // 稍慢一点，更有质感
-      ease: 'Bounce.easeOut', // 弹跳效果，模拟落地
+      alpha: 1,
+      duration: 800,
+      ease: 'Bounce.easeOut',
       delay: (target: Phaser.GameObjects.Container) => {
         const tileId = target.getData('tileId');
         const tile = this.tiles.get(tileId);
         if (!tile) return 0;
-        // 根据层级和索引计算延迟，产生波浪感
         return tile.position.z * 50 + (parseInt(tile.id.split('-')[1]) % 20) * 20;
+      },
+      onComplete: () => {
+        // 动画完成后重新启用输入
+        this.input.enabled = true;
       },
     });
   }
