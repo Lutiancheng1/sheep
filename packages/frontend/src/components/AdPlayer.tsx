@@ -19,6 +19,7 @@ export const AdPlayer: React.FC<AdPlayerProps> = ({
 }) => {
   const [timeLeft, setTimeLeft] = useState(durationSeconds);
   const [canSkip, setCanSkip] = useState(false);
+  const [isVideoReady, setIsVideoReady] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -29,11 +30,33 @@ export const AdPlayer: React.FC<AdPlayerProps> = ({
       setTimeLeft(durationSeconds);
       setCanSkip(false);
       setShowConfirm(false);
+      setIsVideoReady(false);
+
+      // Disable game input to prevent click-through
+      window.dispatchEvent(new CustomEvent('DISABLE_INPUT'));
+
       if (videoRef.current) {
         videoRef.current.currentTime = 0;
         videoRef.current.play().catch((e) => console.error('Auto-play failed:', e));
       }
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (videoRef.current) {
+        videoRef.current.pause();
+      }
 
+      // Re-enable game input when ad player is closed
+      window.dispatchEvent(new CustomEvent('ENABLE_INPUT'));
+    }
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [visible, durationSeconds]);
+
+  // 当视频开始播放时启动倒计时
+  useEffect(() => {
+    if (visible && isVideoReady && !timerRef.current) {
       timerRef.current = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
@@ -44,17 +67,12 @@ export const AdPlayer: React.FC<AdPlayerProps> = ({
           return prev - 1;
         });
       }, 1000);
-    } else {
-      if (timerRef.current) clearInterval(timerRef.current);
-      if (videoRef.current) {
-        videoRef.current.pause();
-      }
     }
+  }, [visible, isVideoReady]);
 
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [visible, durationSeconds]);
+  const handleVideoPlaying = () => {
+    setIsVideoReady(true);
+  };
 
   const handleVideoEnded = () => {
     // If timer hasn't finished, replay the video
@@ -73,7 +91,12 @@ export const AdPlayer: React.FC<AdPlayerProps> = ({
     if (canSkip) {
       onComplete();
     } else {
+      // 暂停视频和倒计时
       videoRef.current?.pause();
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
       setShowConfirm(true);
     }
   };
@@ -85,7 +108,19 @@ export const AdPlayer: React.FC<AdPlayerProps> = ({
 
   const handleCancelClose = () => {
     setShowConfirm(false);
+    // 恢复视频播放
     videoRef.current?.play();
+    // 恢复倒计时
+    timerRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          setCanSkip(true);
+          if (timerRef.current) clearInterval(timerRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   };
 
   if (!visible) return null;
@@ -104,6 +139,7 @@ export const AdPlayer: React.FC<AdPlayerProps> = ({
           src={videoUrl}
           className="w-full h-full object-contain"
           onEnded={handleVideoEnded}
+          onPlaying={handleVideoPlaying}
           playsInline
           controls={false}
         />
