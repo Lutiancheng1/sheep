@@ -5,14 +5,20 @@ import { AdminSeeder } from './admin/admin.seeder';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  // CORS 配置 - 开发环境允许所有来源，生产环境限制具体域名
+  // CORS 配置 - 开发环境允许所有来源,生产环境动态验证(允许同IP不同端口)
   const allowedOrigins =
     process.env.NODE_ENV === 'production'
-      ? [
-          'http://8.148.255.174:4000', // 生产环境前端
-          'http://8.148.255.174:4001', // 生产环境后端
-          'http://8.148.255.174:4002', // 生产环境管理后台
-        ]
+      ? (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+          // 生产环境: 允许来自相同服务器的端口 4000(前端), 4001(后端), 4002(管理后台)
+          if (!origin) {
+            // 允许非浏览器请求(如服务端渲染、curl等)
+            callback(null, true);
+            return;
+          }
+          const allowedPorts = [':4000', ':4001', ':4002'];
+          const isAllowed = allowedPorts.some((port) => origin.includes(port));
+          callback(null, isAllowed);
+        }
       : true; // 开发环境允许所有
 
   app.enableCors({
