@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { AdminSeeder } from './admin/admin.seeder';
 
@@ -35,6 +36,16 @@ async function bootstrap() {
   await adminSeeder.seed();
 
   app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
+
+  // Swagger 配置
+  const config = new DocumentBuilder()
+    .setTitle('Sheep Game API')
+    .setDescription('The Sheep Game API description')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, document);
 
   await app.listen(process.env.PORT ?? 4001);
 }
